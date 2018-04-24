@@ -1,9 +1,6 @@
 <?php
 class LevelRankInterface extends BaseInterface
 {
-    /**
-     * 参与排行
-     */
     public function joinRank()
     {
         $group_id = getParam('group_id');
@@ -19,9 +16,6 @@ class LevelRankInterface extends BaseInterface
         $this->respondSuccess(null);
     }
 
-    /**
-     * 获取排行
-     */
     public function getRank()
     {
         $group_id = getParam('group_id');
