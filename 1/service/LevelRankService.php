@@ -21,24 +21,19 @@ class LevelRankService extends BaseService
         $redis->zAdd($redis_key, $info['trophy_summary']['level'], $open_id);
 
         return true;
+
     }
 
     public function getRank($group_id, $open_id)
     {
         $redis = r('psn_redis');
-        $redis_key = redis_key('account_info', $open_id);
-        $my_info = $redis->hMget($redis_key, array('nick_name', 'gender', 'avatar_url', 'psn_id'));
-
-        //判断是否在排行榜内
-        $redis_key = redis_key('level_rank', $group_id);
-        $rank = $redis->zRevRank($redis_key, $open_id);
-        $my_info['rank'] = $rank === false ? '' : $rank + 1;
+        $rank_key = redis_key('level_rank', $group_id);
 
         $service = s('Profile');
-        $result = $redis->zRevRange($redis_key, 0, -1);
+        $result = $redis->zRevRange($rank_key, 0, -1);
         $list = array();
-        foreach ($result as $open_id) {
-            $redis_key = redis_key('account_info', $open_id);
+        foreach ($result as $account_id) {
+            $redis_key = redis_key('account_info', $account_id);
             $account_info = $redis->hMget($redis_key, array('nick_name', 'gender', 'avatar_url', 'psn_id'));
             $psn_info = $service->getUserInfo($account_info['psn_id']);
             $temp = array(
@@ -57,6 +52,18 @@ class LevelRankService extends BaseService
             $list[] = $temp;
             unset($temp);
         }
+
+        if (empty($open_id) || $open_id == 'undefined') {
+            $my_info = array();
+        } else {
+            $info_key = redis_key('account_info', $open_id);
+            $my_info = $redis->hMget($info_key, array('nick_name', 'gender', 'avatar_url', 'psn_id'));
+        }
+
+        $my_info = $my_info['nick_name'] ? $my_info : array();
+        //判断是否在排行榜内
+        $rank = $redis->zRevRank($rank_key, $open_id);
+        $my_info['rank'] = $rank === false ? '' : $rank + 1;
 
         $data['my_info'] = $my_info;
         $data['list'] = $list;

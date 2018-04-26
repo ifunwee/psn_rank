@@ -47,8 +47,9 @@ class MiniProgramService extends BaseService
         if (isset($response['errcode'])) {
             return $this->setError($response['errcode'], $response['errmsg']);
         }
+
         $this->sesison_key = $response['session_key'];
-//        $this->sesison_key = '2vvKSzR0qbzXIbHlVRbe7g==';
+//        $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
         $data = $this->handleDecrypt($encrypt_data, $iv);
 
         if ($this->hasError()) {
@@ -103,6 +104,7 @@ class MiniProgramService extends BaseService
         $aes_cipher = base64_decode($encrypt_data);
 
         $result = openssl_decrypt($aes_cipher, "AES-128-CBC", $aes_key, 1, $aes_iv);
+
         $service = s('Common');
         $result = $service->uncamelizeJson($result);
 

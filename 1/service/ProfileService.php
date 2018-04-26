@@ -239,6 +239,7 @@ class ProfileService extends BaseService
         if (empty($open_id) || empty($psn_id)) {
             return false;
         }
+
         $db = pdo();
         $db->tableName = 'account';
         $where['open_id'] = $open_id;
