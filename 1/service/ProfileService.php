@@ -88,7 +88,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyTitleSmallIconUrl',
             'platform' => 'PS4,PSVITA,PS3',
             'returnUrlScheme' => 'http',
@@ -167,7 +167,7 @@ class ProfileService extends BaseService
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyTitleSmallIconUrl,trophyGroupSmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
@@ -209,7 +209,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups/{$version_id}/trophies?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyRare,trophyEarnedRate,hasTrophyGroups,trophySmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
@@ -317,7 +317,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'oJ47jA0thJPiw3jfEi9r9N4grUzoMjXtO92XU1Jevk605mQxO3ztPFVirS6wmgOY';
+        $npsso = 'UXezp0I4G6ToYN39ueMRUQQYXcAZt2rCkdRBQoF6SSMHxAsP3EU5FiyPkiemmHh2';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
@@ -360,6 +360,7 @@ class ProfileService extends BaseService
         }
         $sso_cookie = "npsso={$npsso}";
         $head = $this->curlHeader($url, $header, $sso_cookie);
+
         preg_match("/X-NP-GRANT-CODE:([^\r\n]*)/i", $head, $matches);
         $grant_code = trim($matches[1]);
 
@@ -386,6 +387,7 @@ class ProfileService extends BaseService
         $header = array("Origin: https://id.sonyentertainmentnetwork.com");
         $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
         $grant_info = $this->getGrantCode();
+
         if ($this->hasError()) {
             return $this->setError($this->getError());
         }

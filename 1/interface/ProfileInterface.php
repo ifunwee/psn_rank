@@ -12,15 +12,17 @@ class ProfileInterface extends BaseInterface
         $open_id = getParam('open_id');
 
         $service      = s('Profile');
-        $info = $service->getUserInfo($psn_id, $open_id);
+        $info = $service->getUserInfo($psn_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $service->bind($open_id, $psn_id);
-        if ($service->hasError()) {
-            $this->respondFailure($service->getError());
+        if (!empty($info)) {
+            $service->bind($open_id, $psn_id);
+            if ($service->hasError()) {
+                $this->respondFailure($service->getError());
+            }
         }
 
         $this->respondSuccess($info);
