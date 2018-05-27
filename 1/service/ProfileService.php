@@ -8,12 +8,13 @@ class ProfileService extends BaseService
     public $expire_time;
     public $cache_mode;
 
-    public function __construct()
+    public function __construct($refresh = 0)
     {
         parent::__construct();
         //凌晨数据过期
         $this->expire_time = strtotime(date('Ymd')) + 86400 + 3600 * 4;
         $this->cache_mode = c('cache_mode');
+        $refresh && $this->cache_mode = false;
     }
 
     /**
@@ -139,15 +140,82 @@ class ProfileService extends BaseService
         }
     }
 
-    public function getUserGameDetail($psn_id, $game_id)
+    public function getGameDetail($psn_id, $game_id)
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('psn_game_detail', $game_id);
+        $json = $redis->get($redis_key);
+
+        if (!empty($json) && $this->cache_mode) {
+            return json_decode($json, true);
+        }
+
+        $data = $this->getUserGameDetail($psn_id, $game_id, 1);
+        return $data;
+    }
+
+    public function getGameProgress($psn_id, $game_id)
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
+        $json = $redis->get($redis_key);
+        if (!empty($json) && $this->cache_mode) {
+            return json_decode($json, true);
+        }
+
+        return $this->getUserGameDetail($psn_id, $game_id, 2);
+    }
+
+    public function getUserGameDetail($psn_id, $game_id, $type = 1)
     {
         $data = $this->getUserGameInfo($psn_id, $game_id);
+        $trophy_total_num = array_sum($data['defined_trophies']);
+        $trophy_earned_num = 0;
+        $earned = $no_earned = $earned_date_arr = array();
         foreach ($data['trophy_groups'] as &$item) {
+            unset($item['compared_user']);
             $progress = $this->getUserGameProgress($psn_id, $game_id, $item['trophy_group_id']);
+            $trophy_earned = $trophy_no_earned = array();
+            foreach ($progress['trophies'] as &$trophy) {
+                if ($trophy['compared_user']['earned']) {
+                    $trophy_earned['trophy_group_id'] = $item['trophy_group_id'];
+                    $trophy_earned['trophy_id'][] = $trophy['trophy_id'];
+                    //获得的奖杯总数
+                    $trophy_earned_num = count($trophy_earned['trophy_id']);
+                    //获得奖杯的时间集合
+                    $earned_date_arr[] = $trophy['compared_user']['earned_date'];
+                } else {
+                    $trophy_no_earned['trophy_group_id'] = $item['trophy_group_id'];
+                    $trophy_no_earned['trophy_id'][] = $trophy['trophy_id'];
+                }
+                unset($trophy['compared_user']);
+            }
             $item['trophies'] = $progress['trophies'];
+            $earned[] = $trophy_earned;
+            $no_earned[] = $trophy_no_earned;
+            unset($trophy);
         }
         unset($item);
-        return $data;
+
+        $user_progress = array(
+            'complete' => "{$trophy_earned_num}/{$trophy_total_num}",
+            'earned' => array_filter($earned),
+            'no_earned' => array_filter($no_earned),
+            'first_trophy_earned' => min($earned_date_arr),
+            'last_trophy_earned' => max($earned_date_arr),
+        );
+
+        $redis = r('psn_redis');
+        $redis_key = redis_key('psn_game_detail', $game_id);
+        $redis->set($redis_key, json_encode($data));
+        $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
+        $redis->set($redis_key, json_encode($user_progress));
+
+        if ((int)$type == 1) {
+            return $data;
+        } else {
+            return $user_progress;
+        }
     }
 
     public function getUserGameInfo($psn_id, $game_id)

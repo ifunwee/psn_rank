@@ -34,8 +34,9 @@ class ProfileInterface extends BaseInterface
     public function getUserGameList()
     {
         $psn_id = getParam('psn_id');
+        $refresh = getParam('refresh', 0);
 
-        $service      = s('Profile');
+        $service      = s('Profile', $refresh);
         $info = $service->getUserGameList($psn_id);
 
         if ($service->hasError()) {
@@ -46,6 +47,44 @@ class ProfileInterface extends BaseInterface
     }
 
     /**
+     * 获取用户游戏详情
+     */
+    public function getGameDetail()
+    {
+        $psn_id = getParam('psn_id');
+        $game_id = getParam('game_id');
+
+        $service      = s('Profile');
+        $info = $service->getGameDetail($psn_id, $game_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
+    /**
+     * 获取用户游戏进度
+     */
+    public function getGameProgress()
+    {
+        $psn_id = getParam('psn_id');
+        $game_id = getParam('game_id');
+        $refresh = getParam('refresh', 0);
+
+        $service      = s('Profile', $refresh);
+        $info = $service->getGameProgress($psn_id, $game_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
+    /**
+     * 【废弃】
      * 获取用户游戏详情 相当于getUserGameInfo + getUserGameProgress
      */
     public function getUserGameDetail()
@@ -64,6 +103,7 @@ class ProfileInterface extends BaseInterface
     }
 
     /**
+     * 【废弃】
      * 获取用户游戏基本信息
      */
     public function getUserGameInfo()
@@ -82,6 +122,7 @@ class ProfileInterface extends BaseInterface
     }
 
     /**
+     * 【废弃】
      * 获取用户游戏进度
      */
     public function getUserGameProgress()
