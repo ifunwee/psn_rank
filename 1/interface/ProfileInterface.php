@@ -12,7 +12,8 @@ class ProfileInterface extends BaseInterface
         $open_id = getParam('open_id');
 
         $service      = s('Profile');
-        $info = $service->getUserInfo($psn_id);
+        $refresh = getParam('refresh', 0);
+        $info = $service->getUserInfo($psn_id, $refresh);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());

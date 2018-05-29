@@ -36,7 +36,7 @@ class ProfileService extends BaseService
 
         $info = $this->getApiAccessToken();
         if ($this->hasError()) {
-            return $this->setError();
+            return $this->setError($this->getError());
         }
 
         $url = "https://cn-prof.np.community.playstation.net/userProfile/v1/users/{$psn_id}/profile2?";
@@ -84,7 +84,7 @@ class ProfileService extends BaseService
 
         $info = $this->getApiAccessToken();
         if ($this->hasError()) {
-            return $this->setError();
+            return $this->setError($this->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
@@ -230,7 +230,7 @@ class ProfileService extends BaseService
 
         $info = $this->getApiAccessToken();
         if ($this->hasError()) {
-            return $this->setError();
+            return $this->setError($this->getError());
         }
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups?";
