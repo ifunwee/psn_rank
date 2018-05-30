@@ -180,8 +180,6 @@ class ProfileService extends BaseService
                 if ($trophy['compared_user']['earned']) {
                     $trophy_earned['trophy_group_id'] = $item['trophy_group_id'];
                     $trophy_earned['trophy_id'][] = $trophy['trophy_id'];
-                    //获得的奖杯总数
-                    $trophy_earned_num = count($trophy_earned['trophy_id']);
                     //获得奖杯的时间集合
                     $earned_date_arr[] = $trophy['compared_user']['earned_date'];
                 } else {
@@ -190,12 +188,13 @@ class ProfileService extends BaseService
                 }
                 unset($trophy['compared_user']);
             }
+            //获得的奖杯总数
+            $trophy_earned_num += count($trophy_earned['trophy_id']);
             $item['trophies'] = $progress['trophies'];
             $earned[] = $trophy_earned;
             $no_earned[] = $trophy_no_earned;
             unset($trophy);
         }
-        unset($item);
 
         $user_progress = array(
             'complete' => "{$trophy_earned_num}/{$trophy_total_num}",
