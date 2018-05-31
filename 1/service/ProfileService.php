@@ -179,12 +179,14 @@ class ProfileService extends BaseService
             foreach ($progress['trophies'] as &$trophy) {
                 if ($trophy['compared_user']['earned']) {
                     $trophy_earned['trophy_group_id'] = $item['trophy_group_id'];
+                    $trophy_earned['trophy_group_name'] = $item['trophy_group_name'];
                     //获得奖杯的时间集合
                     $earned_date_arr[] = $trophy['compared_user']['earned_date'];
                     unset($trophy['compared_user']);
                     $trophy_earned['trophies'][] = $trophy;
                 } else {
                     $trophy_no_earned['trophy_group_id'] = $item['trophy_group_id'];
+                    $trophy_no_earned['trophy_group_name'] = $item['trophy_group_name'];
                     unset($trophy['compared_user']);
                     $trophy_no_earned['trophies'][] = $trophy;
                 }
@@ -199,8 +201,8 @@ class ProfileService extends BaseService
 
         $user_progress = array(
             'complete' => "{$trophy_earned_num}/{$trophy_total_num}",
-            'earned' => array_filter($earned),
-            'no_earned' => array_filter($no_earned),
+            'earned' => array_values(array_filter($earned)),
+            'no_earned' => array_values(array_filter($no_earned)),
             'first_trophy_earned' => min($earned_date_arr),
             'last_trophy_earned' => max($earned_date_arr),
         );
