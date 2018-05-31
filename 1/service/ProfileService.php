@@ -186,7 +186,7 @@ class ProfileService extends BaseService
                 } else {
                     $trophy_no_earned['trophy_group_id'] = $item['trophy_group_id'];
                     unset($trophy['compared_user']);
-                    $trophy_earned['trophies'][] = $trophy;
+                    $trophy_no_earned['trophies'][] = $trophy;
                 }
             }
             //获得的奖杯总数
