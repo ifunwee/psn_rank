@@ -169,9 +169,16 @@ class ProfileService extends BaseService
     public function getUserGameDetail($psn_id, $game_id, $type = 1)
     {
         $data = $this->getUserGameInfo($psn_id, $game_id);
+        if ($this->hasError()) {
+            return $this->getError();
+        }
+
         $trophy_total_num = array_sum($data['defined_trophies']);
         $trophy_earned_num = 0;
         $earned = $no_earned = $earned_date_arr = array();
+        if (empty($data['trophy_groups'])) {
+            return array();
+        }
         foreach ($data['trophy_groups'] as &$item) {
             unset($item['compared_user']);
             $progress = $this->getUserGameProgress($psn_id, $game_id, $item['trophy_group_id']);
@@ -208,14 +215,13 @@ class ProfileService extends BaseService
         );
 
         $redis = r('psn_redis');
-        $redis_key = redis_key('psn_game_detail', $game_id);
-        $redis->set($redis_key, json_encode($data));
-        $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
-        $redis->set($redis_key, json_encode($user_progress));
-
         if ((int)$type == 1) {
+            $redis_key = redis_key('psn_game_detail', $game_id);
+            $redis->set($redis_key, json_encode($data));
             return $data;
         } else {
+            $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
+            $redis->set($redis_key, json_encode($user_progress));
             return $user_progress;
         }
     }
@@ -258,7 +264,12 @@ class ProfileService extends BaseService
         $redis->set($redis_key, $json);
         $redis->expireAt($redis_key, $this->expire_time);
 
-        return json_decode($json, true);
+        $data = json_decode($json, true);
+        if ($data['error']) {
+            return $this->setError($data['error']['code'], $data['error']['message']);
+        }
+
+        return $data;
     }
 
     public function getUserGameProgress($psn_id, $game_id, $version_id)
