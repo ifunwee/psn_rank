@@ -203,8 +203,8 @@ class ProfileService extends BaseService
             'complete' => "{$trophy_earned_num}/{$trophy_total_num}",
             'earned' => array_values(array_filter($earned)),
             'no_earned' => array_values(array_filter($no_earned)),
-            'first_trophy_earned' => min($earned_date_arr),
-            'last_trophy_earned' => max($earned_date_arr),
+            'first_trophy_earned' => $earned_date_arr ? min($earned_date_arr) : '',
+            'last_trophy_earned' =>  $earned_date_arr ? max($earned_date_arr) : '',
         );
 
         $redis = r('psn_redis');
