@@ -4,7 +4,6 @@ class CommonService extends BaseService
 {
     /**
      * curl请求
-     *
      * @param        $url
      * @param array  $header
      * @param string $post_data
@@ -41,8 +40,7 @@ class CommonService extends BaseService
     }
 
     /**
-     * 获取请求cookie
-     *
+     * curl cookie
      * @param       $url
      * @param array $header
      *
@@ -70,8 +68,7 @@ class CommonService extends BaseService
     }
 
     /**
-     * 获取请求头
-     *
+     * curl header
      * @param        $url
      * @param array  $header
      * @param string $cookie
@@ -105,7 +102,6 @@ class CommonService extends BaseService
 
         return $head;
     }
-
 
     /**
      * 将json中驼峰命名转下划线命名
