@@ -187,7 +187,7 @@ class ProfileService extends BaseService
             $trophy_earned = $trophy_no_earned = array();
             foreach ($progress['trophies'] as &$trophy) {
                 if ($trophy['compared_user']['earned']) {
-                    $trophy_earned['trophy_group_id'] = $item['trophy_group_id'];
+                    $trophy_earned['trophy_group_id'] = ['trophy_group_id'];
                     $trophy_earned['trophy_group_name'] = $item['trophy_group_name'];
                     //获得奖杯的时间集合
                     $earned_date_arr[] = $trophy['compared_user']['earned_date'];
@@ -199,6 +199,8 @@ class ProfileService extends BaseService
                     unset($trophy['compared_user']);
                     $trophy_no_earned['trophies'][] = $trophy;
                 }
+
+                $this->setTrophyInfoToCache($game_id, $trophy['trophy_id'], $trophy);
             }
             //获得的奖杯总数
             $trophy_earned_num += count($trophy_earned['trophies']);
@@ -272,6 +274,18 @@ class ProfileService extends BaseService
             return $this->setError($data['error']['code'], $data['error']['message']);
         }
 
+        if ($data['trophy_title_name']) {
+            $info = array(
+                'trophy_title_name' => $data['trophy_title_name'],
+                'trophy_title_detail' => $data['trophy_title_detail'],
+                'trophy_title_icon_url' => $data['trophy_title_icon_url'],
+                'trophy_title_small_icon_url' => $data['trophy_title_small_icon_url'],
+                'trophy_title_platfrom' => $data['trophy_title_platfrom'],
+                'defined_trophies' => json_encode($data['defined_trophies']),
+            );
+            $this->setGameOverviewToCache($game_id, $info);
+        }
+
         return $data;
     }
 
@@ -317,6 +331,24 @@ class ProfileService extends BaseService
         $redis->set($redis_key, $json);
         $redis->expireAt($redis_key, $this->expire_time);
         return json_decode($json, true);
+    }
+
+    public function getTrophyTips($game_id, $trophy_id)
+    {
+        $game_info = $this->getGameOverviewFromCache($game_id);
+        $trophy_info = $this->getTrophyInfoFromCache($game_id, $trophy_id);
+        if (empty($game_info) || empty($trophy_info)) {
+            return $this->setError('game_id_or_trophy_id_is_invalid', '非法的参数');
+        }
+
+        $list = $this->getTrophyTipsFromDb($game_id, $trophy_id);
+        if (empty($list)) {
+            $list = $this->getPsnineTips($game_id, $trophy_id);
+        }
+        $result['game_info'] = $game_info;
+        $result['trophy_info'] = $trophy_info;
+        $result['tips_list'] = $list;
+        return $result;
     }
 
     public function bind($open_id, $psn_id)
@@ -505,6 +537,108 @@ class ProfileService extends BaseService
         return $info;
     }
 
+    /**
+    <div class="post">
+    <a class="l" href="http://psnine.com/psnid/unistalling"><img src="http://photo.psnine.com/avatar/HP0102/CUSA06605_00-PREMIUMAVATAR037_3ED12F7996610452541B_l.png?x-oss-process=image/resize,w_50" width="50" height="50" /></a>
+    <div class="ml64">
+    <div class="content pb10">
+    居然叫最后一次，好伤感。<br />再（也不）见。	</div>
+    <div class="meta">
+    <a href="http://psnine.com/psnid/unistalling" class="psnnode">unistalling</a>
+    2年前	</div>
+     */
+    public function getPsnineTips($game_id, $trophy_id)
+    {
+        $start = (int)substr($game_id, 4, 5);
+        $end = str_pad($trophy_id + 1, 3, 0, STR_PAD_LEFT);
+        $id = (string)$start . (string)$end;
 
+        $url = "http://psnine.com/trophy/{$id}";
+        $service = s('Common');
+        $response = $service->curl($url);
+
+        $response =  preg_replace_callback('/<a href=\"(.*?)\"/i', function($matchs){
+            return str_replace($matchs[1], '#', $matchs[0]);
+        }, $response);
+        $preg = '/<a class=\"l\"(.*?)<img src=\"(.*?)\" width/i';
+        preg_match_all($preg, $response, $matches);
+        $avatar_arr = $matches[2];
+        unset($matches);
+        $preg = '/<div class=\"content pb10\">([\s\S]*?)<\/div>/i';
+        preg_match_all($preg, $response, $matches);
+        $content_arr = $matches[1];
+        unset($matches);
+        $preg = '/<a href=\"#\" class=\"psnnode\">(.*?)<\/a>/i';
+        preg_match_all($preg, $response, $matches);
+        $nickname_arr = $matches[1];
+
+        $list = array();
+        $db = pdo();
+        $db->tableName = 'trophy_tips';
+
+        if (empty($content_arr)) {
+            return $list;
+        }
+
+        foreach ($content_arr as $key => $content) {
+            $data = $temp = array(
+                'nickname'  => trim($nickname_arr[$key]),
+                'avatar'    => trim($avatar_arr[$key]),
+                'content'   => trim($content),
+            );
+
+            $list[] = $temp;
+            $data['game_id'] = $game_id;
+            $data['trophy_id'] = $trophy_id;
+            $data['source'] = 1;
+            $data['create_time'] = time();
+
+            $db->preInsert($data);
+        }
+        $db->preInsertPost();
+        return $list;
+    }
+
+    protected function getTrophyTipsFromDb($game_id, $trophy_id)
+    {
+        $db = pdo();
+        $db->tableName = 'trophy_tips';
+        $where['game_id'] = $game_id;
+        $where['trophy_id'] = $trophy_id;
+        $list = $db->findAll($where, 'nickname,avatar,content');
+
+        return $list;
+    }
+
+    protected function getTrophyInfoFromCache($game_id, $trophy_id)
+    {
+        $redis = r('psn_redis');
+        $trophy_info_key = redis_key('psn_trophy_info', $game_id, $trophy_id);
+        return $redis->hGetAll($trophy_info_key);
+    }
+
+    protected function setTrophyInfoToCache($game_id, $trophy_id, $info)
+    {
+        $redis = r('psn_redis');
+        $trophy_info_key = redis_key('psn_trophy_info', $game_id, $trophy_id);
+        $redis->hMset($trophy_info_key, $info);
+    }
+
+    protected function getGameOverviewFromCache($game_id)
+    {
+        $redis = r('psn_redis');
+        $game_overview_key = redis_key('psn_game_overview', $game_id);
+        $data = $redis->hGetAll($game_overview_key);
+        $data['defined_trophies'] = json_decode($data['defined_trophies'], true);
+
+        return $data;
+    }
+
+    protected function setGameOverviewToCache($game_id, $info)
+    {
+        $redis = r('psn_redis');
+        $game_overview_key = redis_key('psn_game_overview', $game_id);
+        $redis->hMset($game_overview_key, $info);
+    }
 
 }

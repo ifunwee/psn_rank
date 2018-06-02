@@ -85,6 +85,21 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    public function getTrophyTips()
+    {
+        $game_id = getParam('game_id');
+        $trophy_id = getParam('trophy_id');
+
+        $service      = s('Profile');
+        $info = $service->getTrophyTips($game_id, $trophy_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
     /**
      * 【废弃】
      * 获取用户游戏详情 相当于getUserGameInfo + getUserGameProgress
