@@ -218,14 +218,29 @@ class ProfileService extends BaseService
             'last_trophy_earned' =>  $earned_date_arr ? max($earned_date_arr) : '',
         );
 
+        $expire_time   = strtotime(date("Y-m", strtotime("+1 month")));
         $redis = r('psn_redis');
         if ((int)$type == 1) {
             $redis_key = redis_key('psn_game_detail', $game_id);
             $redis->set($redis_key, json_encode($data));
+            $redis->expireAt($redis_key, $expire_time);
             return $data;
         } else {
+            //如果缓存中的奖杯总数与用户进度的总数不一致 则更新缓存数据
+            $redis_key = redis_key('psn_game_detail', $game_id);
+            $json = $redis->get($redis_key);
+            $cache = json_decode($json, true);
+            $cache_trophy_total_num = array_sum($cache['defined_trophies']);
+            if ((int)$cache_trophy_total_num != (int)$trophy_total_num) {
+                $redis_key = redis_key('psn_game_detail', $game_id);
+                $redis->set($redis_key, json_encode($data));
+                $redis->expireAt($redis_key, $expire_time);
+            }
+
+            //缓存用户游戏进度
             $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
             $redis->set($redis_key, json_encode($user_progress));
+            $redis->expireAt($redis_key, $this->expire_time);
             return $user_progress;
         }
     }
@@ -351,6 +366,25 @@ class ProfileService extends BaseService
         return $result;
     }
 
+    public function getPsnId($open_id)
+    {
+        $info = $this->getAccountInfoFromCache($open_id, array('psn_id'));
+        if (empty($info['psn_id'])) {
+            $info = $this->getAccountInfoFromDb($open_id, array('psn_id'));
+
+            if (!empty($info['psn_id'])) {
+                $redis = r('psn_redis');
+                $redis_key = redis_key('account_info', $open_id);
+                $redis->hSet($redis_key, 'psn_id', $info['psn_id']);
+            }
+        }
+
+        $psn_id = $info['psn_id'] ? $info['psn_id'] : '';
+        $result['psn_id'] = $psn_id;
+
+        return $result;
+    }
+
     public function bind($open_id, $psn_id)
     {
         if (empty($open_id) || empty($psn_id)) {
@@ -358,14 +392,16 @@ class ProfileService extends BaseService
         }
 
         $db = pdo();
-        $db->tableName = 'account';
-        $where['open_id'] = $open_id;
-        $info = $db->find($where);
+        $info = $this->getAccountInfoFromDb($open_id);
         if (empty($info)) {
-            return $this->setError('bind_error_open_id_invalid', 'psn账号绑定异常');
+            $data['psn_id'] = $psn_id;
+            $data['open_id'] = $open_id;
+            $result = $db->insert($data);
+        } else {
+            $data['psn_id'] = $psn_id;
+            $where['open_id'] = $open_id;
+            $result = $db->update($data, $where);
         }
-        $data['psn_id'] = $psn_id;
-        $result = $db->update($data, $where);
 
         if (false !== $result) {
             $redis = r('psn_redis');
@@ -537,16 +573,6 @@ class ProfileService extends BaseService
         return $info;
     }
 
-    /**
-    <div class="post">
-    <a class="l" href="http://psnine.com/psnid/unistalling"><img src="http://photo.psnine.com/avatar/HP0102/CUSA06605_00-PREMIUMAVATAR037_3ED12F7996610452541B_l.png?x-oss-process=image/resize,w_50" width="50" height="50" /></a>
-    <div class="ml64">
-    <div class="content pb10">
-    居然叫最后一次，好伤感。<br />再（也不）见。	</div>
-    <div class="meta">
-    <a href="http://psnine.com/psnid/unistalling" class="psnnode">unistalling</a>
-    2年前	</div>
-     */
     public function getPsnineTips($game_id, $trophy_id)
     {
         $start = (int)substr($game_id, 4, 5);
@@ -639,6 +665,37 @@ class ProfileService extends BaseService
         $redis = r('psn_redis');
         $game_overview_key = redis_key('psn_game_overview', $game_id);
         $redis->hMset($game_overview_key, $info);
+    }
+
+    protected function getAccountInfoFromDb($open_id, $field = array())
+    {
+        $db = pdo();
+        $db->tableName = 'account';
+        $where['open_id'] = $open_id;
+        $info = $db->find($where);
+
+        $data = array();
+        if (!empty($field)) {
+            foreach ($field as $item) {
+                $data[$item] = $info[$item];
+            }
+
+            return $data;
+        }
+        return $info;
+    }
+
+    protected function getAccountInfoFromCache($open_id, $field = array())
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('account_info', $open_id);
+        if (empty($field)) {
+            $info = $redis->hGetAll($redis_key);
+        } else {
+            $info = $redis->hMGet($redis_key, $field);
+        }
+
+        return $info;
     }
 
 }

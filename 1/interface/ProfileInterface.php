@@ -100,6 +100,20 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    public function getPsnId()
+    {
+        $open_id = getParam('open_id');
+
+        $service      = s('Profile');
+        $result = $service->getPsnId($open_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
+    }
+
     /**
      * 【废弃】
      * 获取用户游戏详情 相当于getUserGameInfo + getUserGameProgress
