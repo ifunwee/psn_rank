@@ -67,7 +67,11 @@ class MiniProgramService extends BaseService
                 }
                 break;
             case 'auth' :
+                $service = s('Profile');
+                $psn_id = $service->getPsnId($response['openid']);
                 $data['open_id'] = $response['openid'];
+                $data['psn_id'] = $psn_id;
+
                 break;
             case 'share':
                 $this->sesison_key = $response['session_key'];
