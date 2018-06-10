@@ -380,9 +380,7 @@ class ProfileService extends BaseService
         }
 
         $psn_id = $info['psn_id'] ? $info['psn_id'] : '';
-        $result['psn_id'] = $psn_id;
-
-        return $result;
+        return $psn_id;
     }
 
     public function bind($open_id, $psn_id)
