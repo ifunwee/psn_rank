@@ -9,7 +9,7 @@ class MiniProgramInterface extends BaseInterface
         $type = getParam('type');
 
         $service      = s('MiniProgram');
-        $info = $service->decryptData($encrypt_data, $iv, $code, $type);
+        $info = $service->decryptData($type, $code, $encrypt_data, $iv);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());

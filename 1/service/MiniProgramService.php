@@ -8,29 +8,22 @@ class MiniProgramService extends BaseService
     public function __construct()
     {
         parent::__construct();
-        $this->app_id = c('mini_programma.app_id');
-        $this->app_secret = c('mini_programma.app_secret');
+        $this->app_id = c('mini_program.app_id');
+        $this->app_secret = c('mini_program.app_secret');
     }
 
     /**
      * 解密数据
      *
+     * @param $type
+     * @param $code
      * @param $encrypt_data
      * @param $iv
-     * @param $code
      *
      * @return array|mixed
      */
-    public function decryptData($encrypt_data, $iv, $code, $type)
+    public function decryptData($type, $code, $encrypt_data = '', $iv = '')
     {
-        if (empty($encrypt_data)) {
-            return $this->setError('param_encrypt_data_is_empty');
-        }
-
-        if (empty($iv)) {
-            return $this->setError('param_iv_is_empty');
-        }
-
         if (empty($code)) {
             return $this->setError('param_code_is_empty');
         }
@@ -48,16 +41,16 @@ class MiniProgramService extends BaseService
             return $this->setError($response['errcode'], $response['errmsg']);
         }
 
-        $this->sesison_key = $response['session_key'];
-//        $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
-        $data = $this->handleDecrypt($encrypt_data, $iv);
-
-        if ($this->hasError()) {
-            return $this->setError($this->getError());
-        }
-
+        $data = array();
         switch ($type) {
             case 'info' :
+                $this->sesison_key = $response['session_key'];
+                //        $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
+                $data = $this->handleDecrypt($encrypt_data, $iv);
+
+                if ($this->hasError()) {
+                    return $this->setError($this->getError());
+                }
                 $info = array(
                     'open_id' => $data['open_id'],
                     'nick_name' => $data['nick_name'],
@@ -74,6 +67,9 @@ class MiniProgramService extends BaseService
                 }
                 break;
             case 'share' :
+                break;
+            case 'auth' :
+                $data['open_id'] = $response['openid'];
                 break;
             default:
                 break;
