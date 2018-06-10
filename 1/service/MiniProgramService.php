@@ -66,10 +66,12 @@ class MiniProgramService extends BaseService
                     return $this->setError($this->getError());
                 }
                 break;
-            case 'share' :
-                break;
             case 'auth' :
                 $data['open_id'] = $response['openid'];
+                break;
+            case 'share':
+                $this->sesison_key = $response['session_key'];
+                $data = $this->handleDecrypt($encrypt_data, $iv);
                 break;
             default:
                 break;
