@@ -116,7 +116,8 @@ class ProfileService extends BaseService
             $data = json_decode($json, true);
             if (!empty($data['trophy_titles'])) {
                 if (count($data['trophy_titles']) > 1) {
-
+                    $latest_play = array_slice($data['trophy_titles'], 0, 3);
+//                    $latest_play = array_shift($data['trophy_titles']);
                     foreach ($data['trophy_titles'] as $key => $item) {
                         if ($item["compared_user"]["progress"] > 0) {
                             $sort_arr[] = $item["compared_user"]["progress"];
@@ -124,8 +125,7 @@ class ProfileService extends BaseService
                             unset($data['trophy_titles'][$key]);
                         }
                     }
-                    $latest_play = array_slice($data['trophy_titles'], 0, 3);
-//                    $latest_play = array_shift($data['trophy_titles']);
+
 //                    $sort_arr = array_map(create_function('$item', 'return $item["compared_user"]["progress"];'), $data['trophy_titles']);
                     array_multisort($sort_arr, SORT_DESC, $data['trophy_titles']);
 //                    array_unshift($data['trophy_titles'], $latest_play);
