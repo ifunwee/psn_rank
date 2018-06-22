@@ -237,6 +237,17 @@ class ProfileService extends BaseService
                 $redis->expireAt($redis_key, $expire_time);
             }
 
+            //更新游戏概况
+            $info = array(
+                'trophy_title_name' => $data['trophy_title_name'],
+                'trophy_title_detail' => $data['trophy_title_detail'],
+                'trophy_title_icon_url' => $data['trophy_title_icon_url'],
+                'trophy_title_small_icon_url' => $data['trophy_title_small_icon_url'],
+                'trophy_title_platfrom' => $data['trophy_title_platfrom'],
+                'defined_trophies' => json_encode($data['defined_trophies']),
+            );
+            $this->setGameOverviewToCache($game_id, $info);
+
             //缓存用户游戏进度
             $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
             $redis->set($redis_key, json_encode($user_progress));
@@ -394,10 +405,12 @@ class ProfileService extends BaseService
         if (empty($info)) {
             $data['psn_id'] = $psn_id;
             $data['open_id'] = $open_id;
+            $data['create_time'] = time();
             $result = $db->insert($data);
         } else {
             $data['psn_id'] = $psn_id;
             $where['open_id'] = $open_id;
+            $data['update_time'] = time();
             $result = $db->update($data, $where);
         }
 
