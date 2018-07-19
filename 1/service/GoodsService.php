@@ -48,7 +48,7 @@ class GoodsService extends BaseService
             'cover_image' => $goods['cover_image'],
             'description' => $goods['description'],
             'rating_score' => $goods['rating_score'],
-            'rating_total' => $goods['rating_score'],
+            'rating_total' => $goods['rating_total'],
             'publisher' => $goods['publisher'],
             'developer' => $goods['developer'],
             'release_date' => $goods['release_date'],
