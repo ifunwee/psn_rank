@@ -5,7 +5,7 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('Goods');
+        $service      = s('GoodsPrice', 'cn');
         $info = $service->getPromotionList('recent', $page);
 
         if ($service->hasError()) {

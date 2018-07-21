@@ -1,75 +1,71 @@
 <?php
 class GoodsService extends BaseService
 {
-    public function getPromotionList($type, $page = 1, $limit = 20)
+    private $suffix;
+    public function __construct($lang = 'cn')
     {
-        if (empty($type)) {
-            return $this->setError('param_type_is_empty');
-        }
-
-        $list = array();
-        switch ($type) {
-            case 'recent':
-                $where = "origin_price > 0";
-                $sort = 'promo_start_date desc';
-                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
-
-                foreach ($goods_list as $goods) {
-                    $info = array(
-                        'goods_id' => $goods['goods_id'],
-                        'name' => $goods['name'],
-                        'cover_image' => $goods['cover_image'],
-                        'promo_start_date' => $goods['promo_start_date'],
-                        'promo_end_date' => $goods['promo_end_date'],
-                        'origin_price' => strval($goods['origin_price'] / 100),
-                        'sale_price' => strval($goods['sale_price'] / 100),
-                        'plus_price' => strval($goods['plus_price'] / 100),
-                        'discount' => $goods['sale_price'] ? number_format((1-$goods['sale_price']/$goods['origin_price']) * 100, 0) : '',
-                        'plus_discount' => $goods['plus_price'] ? number_format((1-$goods['plus_price']/$goods['origin_price']) * 100, 0): '',
-                    );
-
-                    $list[] = $info;
-                }
+        parent::__construct();
+        switch ($lang) {
+            case 'en' :
+                $this->suffix = '';
                 break;
-            default :
-                return $this->setError('invalid_type');
+            case 'cn' :
+                $this->suffix = '_cn';
+                break;
         }
-        return $list;
     }
 
-    public function getGoodsInfo($goods_id)
+    public function detail($goods_id)
     {
         if (empty($goods_id)) {
             return $this->setError('param_goods_id_is_empty');
         }
-        $goods = $this->getGoodsInfoFromDb($goods_id);
+        $goods_info = $this->getGoodsInfo($goods_id);
         $info = array(
-            'name' => $goods['name'],
-            'cover_image' => $goods['cover_image'],
-            'description' => $goods['description'],
-            'rating_score' => $goods['rating_score'],
-            'rating_total' => $goods['rating_total'],
-            'publisher' => $goods['publisher'],
-            'developer' => $goods['developer'],
-            'release_date' => $goods['release_date'],
-            'promo_start_date' => $goods['promo_start_date'],
-            'promo_end_date' => $goods['promo_end_date'],
-            'origin_price' => strval($goods['origin_price'] / 100),
-            'sale_price' => strval($goods['sale_price'] / 100),
-            'plus_price' => strval($goods['plus_price'] / 100),
-            'discount' => $goods['sale_price'] ? number_format((1-$goods['sale_price']/$goods['origin_price']) * 100, 0) : '',
-            'plus_discount' => $goods['plus_price'] ? number_format((1-$goods['plus_price']/$goods['origin_price']) * 100, 0): '',
-            'preview' => $goods['preview'] ? json_decode($goods['preview']) : '',
-            'screenshots' => $goods['screenshots'] ? json_decode($goods['screenshots']) : '',
+            'goods_id'     => $goods_info['goods_id'],
+            'name'         => $goods_info['name' . $this->suffix],
+            'cover_image'  => $goods_info['cover_image' . $this->suffix],
+            'description'  => $goods_info['description' . $this->suffix],
+            'rating_score' => $goods_info['rating_score'],
+            'rating_total' => $goods_info['rating_total'],
+            'preview'      => $goods_info['preview'],
+            'screenshots'  => $goods_info['screenshots'],
+            'release_date' => $goods_info['release_date'],
+            'publisher'    => $goods_info['publisher'],
+            'developer'    => $goods_info['developer'],
         );
+
+        $service = s('GoodsPrice');
+        $price_info = $service->getGoodsPrice($goods_id);
+        $info['price'] = $price_info;
 
         return $info;
     }
 
-    protected function getGoodsListFromDb($where = '', $field = '', $sort = '', $page = 1, $limit = 20)
+    public function getGoodsInfo($goods_id, $field = array())
+    {
+        if (empty($goods_id)) {
+            return $this->setError('param_goods_id_is_empty');
+        }
+        $info = $this->getGoodsInfoFromDb($goods_id, $field);
+        if (is_array($goods_id)) {
+            foreach ($info as &$goods) {
+                $goods['preview'] = $goods['preview'] ? json_decode($goods['preview'], true) : '';
+                $goods['screenshots'] = $goods['screenshots'] ? json_decode($goods['screenshots'], true) : '';
+            }
+            unset($goods);
+        } else {
+            $info['preview'] = $info['preview'] ? json_decode($info['preview'], true) : '';
+            $info['screenshots'] = $info['screenshots'] ? json_decode($info['screenshots'], true) : '';
+        }
+
+        return $info;
+    }
+
+    protected function getGoodsListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
     {
         $where = $where ? $where : '1=1';
-        $field = $field ? $field : '*';
+        $field = $field ? implode(',', $field) : '*';
         $sort = $sort ? $sort : 'id desc';
         $start = ($page - 1) * $limit;
         $limit_str = "{$start}, {$limit}";
@@ -81,13 +77,27 @@ class GoodsService extends BaseService
         return $list;
     }
 
-    protected function getGoodsInfoFromDb($goods_id)
+    protected function getGoodsInfoFromDb($goods_id, $field = array())
     {
         $db = pdo();
         $db->tableName = 'goods';
-        $where['goods_id'] = $goods_id;
-        $info = $db->find($where);
+        $field = $field ? implode(',', $field) : '*';
+        $result = array();
+        if (is_array($goods_id)) {
+            $goods_id = array_unique($goods_id);
+            $goods_id_str = implode("','", $goods_id);
+            $where = "goods_id in ('{$goods_id_str}')";
+            $list = $db->findAll($where, $field);
+            foreach ($list as $goods) {
+                $result[$goods['goods_id']] = $goods;
+            }
+        } else {
+            $where = "goods_id = '{$goods_id}'";
+            $result = $db->find($where, $field);
+        }
 
-        return $info;
+        return $result;
     }
+
+
 }
