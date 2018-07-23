@@ -25,7 +25,7 @@ class GoodsPriceService extends BaseService
         switch ($type) {
             case 'recent':
                 $where = "discount > 0 or plus_discount > 0";
-                $sort = 'start_date desc';
+                $sort = 'start_date desc, update_time desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
 
                 $goods_id_arr = array_column($price_list, 'goods_id');
@@ -170,9 +170,10 @@ class GoodsPriceService extends BaseService
         $start = ($page - 1) * $limit;
         $limit_str = "{$start}, {$limit}";
 
-        $db = pdo();
+        $db = db();
         $db->tableName = 'goods_price';
         $list = $db->findAll($where, $field, $sort, $limit_str);
+        var_dump(getLastSql());exit;
 
         return $list;
     }
