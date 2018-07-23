@@ -35,6 +35,9 @@ class GoodsService extends BaseService
             'developer'    => $goods_info['developer'],
         );
 
+        $info['description'] = strip_tags($info['description'], '<br>');
+        $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
+
         $service = s('GoodsPrice');
         $price_info = $service->getGoodsPrice($goods_id);
         $info['price'] = $price_info;
@@ -60,6 +63,37 @@ class GoodsService extends BaseService
         }
 
         return $info;
+    }
+
+    public function search($name, $page = 1)
+    {
+        if (empty($name)) {
+            return $this->setError('param_name_is_empty', '请填写游戏名称');
+        }
+        $where = "name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%'";
+        $sort = "rating_total DESC";
+        $goods_list = $this->getGoodsListFromDb($where, array(), $sort, $page);
+        if (empty($goods_list)) {
+            return array();
+        }
+        $goods_id_arr = array_column($goods_list, 'goods_id');
+        $service = s('GoodsPrice');
+        $goods_price = $service->getGoodsPrice($goods_id_arr);
+
+        $list = array();
+        foreach ($goods_list as $goods) {
+            $info = array(
+                'goods_id' => $goods['goods_id'],
+                'name' => $goods['name'.$this->suffix],
+                'cover_image' => $goods['cover_image'.$this->suffix],
+                'rating_score' => $goods['rating_score'],
+                'rating_total' => $goods['rating_total'],
+                'price' => $goods_price[$goods['goods_id']],
+            );
+            $list[] = $info;
+        }
+
+        return $list;
     }
 
     protected function getGoodsListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)

@@ -40,7 +40,6 @@ class GoodsPriceService extends BaseService
                         'goods_id' => $price['goods_id'],
                         'name' => $goods_info[$price['goods_id']]['name'.$this->suffix],
                         'cover_image' => $goods_info[$price['goods_id']]['cover_image'.$this->suffix],
-                        'description' => $goods_info[$price['goods_id']]['description'.$this->suffix],
                         'rating_score' => $goods_info[$price['goods_id']]['rating_score'],
                         'rating_total' => $goods_info[$price['goods_id']]['rating_total'],
                         'price' => array(

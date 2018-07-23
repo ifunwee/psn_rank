@@ -46,9 +46,6 @@ class HandlePs4Game
             $data = json_decode($response, true);
             $item = $data['included'][0];
             $attr = $item['attributes'];
-//            if ($item['type'] !== 'game') {
-//                continue;
-//            }
 
             $product_id_arr = explode('-', $info['store_game_code']);
             $np_title_id    = $product_id_arr[1];
@@ -76,7 +73,6 @@ class HandlePs4Game
                 $info['create_time'] = time();
                 $db->insert($info);
             } else {
-                continue;
                 $info['update_time'] = time();
                 $condition['id']     = $result['id'];
                 $db->update($info, $condition);
@@ -111,17 +107,11 @@ class HandlePs4Game
             $data = json_decode($response, true);
             $item = $data['included'][0];
             $attr = $item['attributes'];
-            if ($item['type'] !== 'game') {
-                continue;
-            }
-
-            $product_id_arr = explode('-', $info['store_game_code']);
-            $np_title_id    = $product_id_arr[1];
 
             $db->tableName     = 'goods_price';
             $where['goods_id'] = $item['id'];
-//            $result            = $db->find($where);
-            $result = array();
+            $result            = $db->find($where);
+
             $origin_price = $attr['skus'][0]['prices']['non-plus-user']['strikethrough-price']['value'];
             $sale_price = $attr['skus'][0]['prices']['non-plus-user']['actual-price']['value'];
             $discount = $attr['skus'][0]['prices']['non-plus-user']['discount-percentage'];
@@ -181,10 +171,6 @@ class HandlePs4Game
             $data = json_decode($response, true);
             $item = $data['included'][0];
             $attr = $item['attributes'];
-            if ($item['type'] !== 'game') {
-                echo $info['store_game_code'] . '此商品非游戏类型';
-                continue;
-            }
 
             $db->tableName     = 'goods';
             $where['goods_id'] = $item['id'];
