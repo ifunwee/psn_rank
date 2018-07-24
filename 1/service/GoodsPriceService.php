@@ -170,10 +170,9 @@ class GoodsPriceService extends BaseService
         $start = ($page - 1) * $limit;
         $limit_str = "{$start}, {$limit}";
 
-        $db = db();
+        $db = pdo();
         $db->tableName = 'goods_price';
         $list = $db->findAll($where, $field, $sort, $limit_str);
-        var_dump(getLastSql());exit;
 
         return $list;
     }
