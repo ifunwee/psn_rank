@@ -55,8 +55,8 @@ class GoodsPriceService extends BaseService
                 break;
             case 'hot':
                 $where = "discount > 0 or plus_discount > 0";
-                $sort = 'rating_total desc, update_time desc';
-                $goods_list = $service->getGoodsListFromDb($where, '', $sort, $page, $limit);
+                $sort = 'rating_total desc, b.update_time desc';
+                $goods_list = $service->getGoodsListWithPriceFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($goods_list);
                 break;
             default :
