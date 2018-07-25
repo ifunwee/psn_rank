@@ -77,7 +77,7 @@ class ProfileService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('user_game_list', $psn_id);
-//        $json = $redis->get($redis_key);
+        $json = $redis->get($redis_key);
 
         if (!empty($json) && $this->cache_mode) {
             return json_decode($json, true);
