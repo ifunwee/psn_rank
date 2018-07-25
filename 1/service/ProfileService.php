@@ -77,7 +77,7 @@ class ProfileService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('user_game_list', $psn_id);
-        $json = $redis->get($redis_key);
+//        $json = $redis->get($redis_key);
 
         if (!empty($json) && $this->cache_mode) {
             return json_decode($json, true);
@@ -116,8 +116,7 @@ class ProfileService extends BaseService
             $data = json_decode($json, true);
             if (!empty($data['trophy_titles'])) {
                 if (count($data['trophy_titles']) > 1) {
-                    $latest_play = array_slice($data['trophy_titles'], 0, 3);
-//                    $latest_play = array_shift($data['trophy_titles']);
+                    $latest_play = array_splice($data['trophy_titles'], 0, 3);
                     foreach ($data['trophy_titles'] as $key => $item) {
                         if ($item["compared_user"]["progress"] > 0) {
                             $sort_arr[] = $item["compared_user"]["progress"];
@@ -126,9 +125,7 @@ class ProfileService extends BaseService
                         }
                     }
 
-//                    $sort_arr = array_map(create_function('$item', 'return $item["compared_user"]["progress"];'), $data['trophy_titles']);
                     array_multisort($sort_arr, SORT_DESC, $data['trophy_titles']);
-//                    array_unshift($data['trophy_titles'], $latest_play);
                     $data['trophy_titles'] = array_merge($latest_play, $data['trophy_titles']);
                 }
 
