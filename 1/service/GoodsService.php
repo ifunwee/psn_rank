@@ -96,7 +96,7 @@ class GoodsService extends BaseService
         return $list;
     }
 
-    protected function getGoodsListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
+    public function getGoodsListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
     {
         $where = $where ? $where : '1=1';
         $field = $field ? implode(',', $field) : '*';
@@ -133,5 +133,19 @@ class GoodsService extends BaseService
         return $result;
     }
 
+    public function getGoodsListWithPriceFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
+    {
+        $where = $where ? $where : '1=1';
+        $field = $field ? implode(',', $field) : '*';
+        $sort = $sort ? $sort : 'id desc';
+        $start = ($page - 1) * $limit;
+        $limit_str = "{$start}, {$limit}";
 
+        $db = pdo();
+        $db->tableName = 'goods';
+        $sql = "(SELECT {$field} FROM `goods` as a LEFT JOIN `goods_price` as b ON a.goods_id = b.goods_id WHERE {$where} ORDER BY {$sort} LIMIT {$limit_str})";
+        $list = $db->query($sql);
+
+        return $list;
+    }
 }

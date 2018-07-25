@@ -45,7 +45,7 @@ class MiniProgramService extends BaseService
         switch ($type) {
             case 'info' :
                 $this->sesison_key = $response['session_key'];
-                //        $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
+//                $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
                 $data = $this->handleDecrypt($encrypt_data, $iv);
 
                 if ($this->hasError()) {
