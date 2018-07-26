@@ -29,7 +29,7 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('1=1', '*', 'id asc');
+        $list          = $db->findAll('id > 1500', '*', 'id asc');
         if (empty($list)) {
             return false;
         }
@@ -93,7 +93,7 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('1=1', '*', 'id asc');
+        $list          = $db->findAll('id > 1500', '*', 'id asc');
         if (empty($list)) {
             return false;
         }
@@ -160,7 +160,7 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('1=1', '*', 'id asc');
+        $list          = $db->findAll('id > 1500', '*', 'id asc');
         if (empty($list)) {
             return false;
         }

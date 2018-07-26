@@ -116,7 +116,7 @@ class ProfileService extends BaseService
             $data = json_decode($json, true);
             if (!empty($data['trophy_titles'])) {
                 if (count($data['trophy_titles']) > 1) {
-                    $latest_play = array_splice($data['trophy_titles'], 0, 3);
+                    $latest_play = array_splice($data['trophy_titles'], 0, 6);
                     foreach ($data['trophy_titles'] as $key => $item) {
                         if ($item["compared_user"]["progress"] > 0) {
                             $sort_arr[] = $item["compared_user"]["progress"];
