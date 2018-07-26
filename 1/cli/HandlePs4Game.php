@@ -69,6 +69,9 @@ class HandlePs4Game
                 'developer'        => '',
             );
 
+            $info['description'] = strip_tags($info['description'], '<br>');
+            $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
+
             if (empty($result)) {
                 $info['create_time'] = time();
                 $db->insert($info);
@@ -112,6 +115,7 @@ class HandlePs4Game
             $where['goods_id'] = $item['id'];
             $result            = $db->find($where);
 
+            $status = empty($attr['skus'][0]['prices']) ? 2 : 1;
             $origin_price = $attr['skus'][0]['prices']['non-plus-user']['strikethrough-price']['value'];
             $sale_price = $attr['skus'][0]['prices']['non-plus-user']['actual-price']['value'];
             $discount = $attr['skus'][0]['prices']['non-plus-user']['discount-percentage'];
@@ -120,6 +124,7 @@ class HandlePs4Game
             $plus_discount = $attr['skus'][0]['prices']['plus-user']['discount-percentage'];
             $start_date = $attr['skus'][0]['prices']['non-plus-user']['availability']['start-date'];
             $end_date = $attr['skus'][0]['prices']['non-plus-user']['availability']['end-date'];
+
 
             $info = array(
                 'goods_id'          => $item['id'] ?: '',
@@ -131,6 +136,7 @@ class HandlePs4Game
                 'plus_discount'     => is_numeric($plus_discount) ? $plus_discount : null,
                 'start_date'        => $start_date ? strtotime($start_date) : 0,
                 'end_date'          => $end_date ? strtotime($end_date) : 0,
+                'status'            => $status,
             );
 
             if (empty($result)) {
@@ -179,11 +185,11 @@ class HandlePs4Game
                 'name_cn'        => $attr['name'] ?: '',
                 'cover_image_cn' => $attr['thumbnail-url-base'] ?: '',
                 'description_cn' => $attr['long-description'] ?: '',
-                'release_date'   => $attr['release-date'] ? strtotime($attr['release-date']) : '',
                 'update_time'    => time(),
             );
 
-            $info['update_time'] = time();
+            $info['description_cn'] = strip_tags($info['description_cn'], '<br>');
+            $info['description_cn'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description_cn']);
             $db->update($info, $where);
 
             echo "商品 {$item['id']} 中文字段更新完成 $i";

@@ -35,9 +35,6 @@ class GoodsService extends BaseService
             'developer'    => $goods_info['developer'],
         );
 
-        $info['description'] = strip_tags($info['description'], '<br>');
-        $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
-
         $service = s('GoodsPrice');
         $price_info = $service->getGoodsPrice($goods_id);
         $info['price'] = $price_info;
