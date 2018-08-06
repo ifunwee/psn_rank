@@ -27,9 +27,10 @@ class HandlePs4Game
 
     public function goods()
     {
-        $db            = pdo();
+        $db = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('id > 1500', '*', 'id asc');
+        $last_id       = 0;
+        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
         if (empty($list)) {
             return false;
         }
@@ -42,8 +43,17 @@ class HandlePs4Game
             }
             $url      = 'https://store.playstation.com/valkyrie-api/en/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
-
             $data = json_decode($response, true);
+
+            if (empty($data['included'])) {
+                $response = $service->curl($url);
+                $data = json_decode($response, true);
+                if (empty($data['included'])) {
+                    echo "商品 {$info['store_game_code']} 获取数据失败";
+                    continue;
+                }
+            }
+
             $item = $data['included'][0];
             $attr = $item['attributes'];
 
@@ -64,7 +74,7 @@ class HandlePs4Game
                 'rating_total'     => $attr['star-rating']['total'] ?: 0,
                 'preview'          => !empty($attr['media-list']['preview']) ? json_encode($attr['media-list']['preview']) : '',
                 'screenshots'      => !empty($attr['media-list']['screenshots']) ? json_encode($attr['media-list']['screenshots']) : '',
-                'release_date'     => $attr['release-date']? strtotime($attr['release-date']) : '',
+                'release_date'     => $attr['release-date']? strtotime($attr['release-date']) : 0,
                 'publisher'        => $attr['provider-name'] ?: '',
                 'developer'        => '',
             );
@@ -93,7 +103,8 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('id > 1500', '*', 'id asc');
+        $last_id       = 0;
+        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
         if (empty($list)) {
             return false;
         }
@@ -108,6 +119,15 @@ class HandlePs4Game
             $response = $service->curl($url);
 
             $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                $response = $service->curl($url);
+                $data = json_decode($response, true);
+                if (empty($data['included'])) {
+                    echo "商品 {$info['store_game_code']} 更新价格失败 \r\n";
+                    continue;
+                }
+            }
+
             $item = $data['included'][0];
             $attr = $item['attributes'];
 
@@ -144,10 +164,12 @@ class HandlePs4Game
                 $db->insert($info);
             } else {
                 $info['update_time'] = time();
-                $condition['id']     = $result['id'];
-                $db->update($info, $condition);
+                $db->update($info, $where);
             }
 
+            unset($data);
+            unset($info);
+            unset($result);
             echo "商品价格 {$item['id']} 更新完成 $i";
             echo "\r\n";
             $i++;
@@ -160,7 +182,8 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $list          = $db->findAll('id > 1500', '*', 'id asc');
+        $last_id       = 0;
+        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
         if (empty($list)) {
             return false;
         }

@@ -339,7 +339,6 @@ class ProfileService extends BaseService
         );
         $param_str = http_build_query($param);
         $url = $url . $param_str;
-
         $header = array(
             "Origin: https://id.sonyentertainmentnetwork.com",
             "Authorization:{$info['token_type']} {$info['access_token']}"
@@ -356,7 +355,21 @@ class ProfileService extends BaseService
         return json_decode($json, true);
     }
 
-    public function getTrophyTips($game_id, $trophy_id)
+    public function getTrophyTips($game_id, $trophy_id, $page)
+    {
+        $exist = $this->existTrophyTipsFromDb($game_id, $trophy_id);
+        if ($exist === true) {
+            $list = $this->getTrophyTipsFromDb($game_id, $trophy_id, $page);
+        } else {
+            $this->getPsnineTips($game_id, $trophy_id);
+            $list = $this->getTrophyTipsFromDb($game_id, $trophy_id, $page);
+        }
+
+        $result['tips_list'] = $list;
+        return $result;
+    }
+
+    public function getTrophyInfo($game_id, $trophy_id)
     {
         $game_info = $this->getGameOverviewFromCache($game_id);
         $trophy_info = $this->getTrophyInfoFromCache($game_id, $trophy_id);
@@ -364,13 +377,8 @@ class ProfileService extends BaseService
             return $this->setError('game_id_or_trophy_id_is_invalid', '非法的参数');
         }
 
-        $list = $this->getTrophyTipsFromDb($game_id, $trophy_id);
-        if (empty($list)) {
-            $list = $this->getPsnineTips($game_id, $trophy_id);
-        }
         $result['game_info'] = $game_info;
         $result['trophy_info'] = $trophy_info;
-        $result['tips_list'] = $list;
         return $result;
     }
 
@@ -480,7 +488,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'UXezp0I4G6ToYN39ueMRUQQYXcAZt2rCkdRBQoF6SSMHxAsP3EU5FiyPkiemmHh2';
+        $npsso = 'R7QrZNqF6PEXkhQxQ6nCRrYTglnF1tQ9LnfFGFY0ON2ux0WRFFGj1qpNlt9LJupI';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
@@ -504,6 +512,7 @@ class ProfileService extends BaseService
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post');
         $data = json_decode($data, true);
+
         if (!empty($data['npsso'])) {
             $redis = r('psn_redis');
             $redis_key = 'auth_info:sso_cookie';
@@ -591,13 +600,28 @@ class ProfileService extends BaseService
         $service = s('Common');
         $response = $service->curl($url);
 
+
+        //替换a标签跳转为#
         $response =  preg_replace_callback('/<a href=\"(.*?)\"/i', function($matchs){
-            return str_replace($matchs[1], '#', $matchs[0]);
+        return str_replace($matchs[1], '#', $matchs[0]);
         }, $response);
+
+        //过滤@xxxxxx
+        $preg = '/<a href=\"#\">@(.*?)<\/a>&nbsp;/i';
+        $response = preg_replace($preg, '', $response);
+
+        //过滤p9的emoji表情
+        /**
+        $preg = '/<img src=\"http:\/\/photo.psnine.com\/face\/(.*?)\">/i';
+        $response = preg_replace($preg, '', $response);
+         */
+
+        //匹配头像
         $preg = '/<a class=\"l\"(.*?)<img src=\"(.*?)\" width/i';
         preg_match_all($preg, $response, $matches);
         $avatar_arr = $matches[2];
         unset($matches);
+        //匹配内容
         $preg = '/<div class=\"content pb10\">([\s\S]*?)<\/div>/i';
         preg_match_all($preg, $response, $matches);
         $content_arr = $matches[1];
@@ -615,6 +639,8 @@ class ProfileService extends BaseService
         }
 
         foreach ($content_arr as $key => $content) {
+            $content = strip_tags($content, '<br>');
+            $content = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $content);
             $data = $temp = array(
                 'nickname'  => trim($nickname_arr[$key]),
                 'avatar'    => trim($avatar_arr[$key]),
@@ -630,18 +656,33 @@ class ProfileService extends BaseService
             $db->preInsert($data);
         }
         $db->preInsertPost();
-        return $list;
+        $info['tips_num'] = count($list);
+        $this->setTrophyInfoToCache($game_id, $trophy_id, $info);
     }
 
-    protected function getTrophyTipsFromDb($game_id, $trophy_id)
+    protected function getTrophyTipsFromDb($game_id, $trophy_id, $page = 1, $limit = 10)
     {
         $db = pdo();
         $db->tableName = 'trophy_tips';
         $where['game_id'] = $game_id;
         $where['trophy_id'] = $trophy_id;
-        $list = $db->findAll($where, 'nickname,avatar,content');
+        $start = ($page - 1 ) * $limit;
+        $limit_str = "{$start}, {$limit}";
+        $list = $db->findAll($where, 'nickname,avatar,content', 'create_time desc,id asc', $limit_str);
 
         return $list;
+    }
+
+    protected function existTrophyTipsFromDb($game_id, $trophy_id)
+    {
+        $db = pdo();
+        $db->tableName = 'trophy_tips';
+        $where['game_id'] = $game_id;
+        $where['trophy_id'] = $trophy_id;
+        $info = $db->find($where);
+
+        $exist = $info ? true : false;
+        return $exist;
     }
 
     protected function getTrophyInfoFromCache($game_id, $trophy_id)

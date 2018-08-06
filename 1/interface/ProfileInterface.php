@@ -85,13 +85,16 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
-    public function getTrophyTips()
+    /**
+     * 获取奖杯信息
+     */
+    public function getTrophyInfo()
     {
         $game_id = getParam('game_id');
         $trophy_id = getParam('trophy_id');
 
         $service      = s('Profile');
-        $info = $service->getTrophyTips($game_id, $trophy_id);
+        $info = $service->getTrophyInfo($game_id, $trophy_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
@@ -100,6 +103,28 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    /**
+     * 获取奖杯贴士
+     */
+    public function getTrophyTips()
+    {
+        $game_id = getParam('game_id');
+        $trophy_id = getParam('trophy_id');
+        $page = getParam('page', 1);
+
+        $service      = s('Profile');
+        $info = $service->getTrophyTips($game_id, $trophy_id, $page);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
+    /**
+     * 获取psn_id
+     */
     public function getPsnId()
     {
         $open_id = getParam('open_id');

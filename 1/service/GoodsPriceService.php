@@ -27,6 +27,7 @@ class GoodsPriceService extends BaseService
                 $where = "discount > 0 or plus_discount > 0";
                 $sort = 'start_date desc, update_time desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
+
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'plus':
@@ -48,13 +49,13 @@ class GoodsPriceService extends BaseService
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'best':
-                $where = "discount > 0 or plus_discount > 0";
+                $where = "rating_total > 1000 and (discount > 0 or plus_discount > 0)";
                 $sort = 'rating_score desc, b.update_time desc';
                 $goods_list = $service->getGoodsListWithPriceFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($goods_list);
                 break;
             case 'hot':
-                $where = "discount > 0 or plus_discount > 0";
+                $where = "rating_total > 500 and (discount > 0 or plus_discount > 0)";
                 $sort = 'rating_total desc, b.update_time desc';
                 $goods_list = $service->getGoodsListWithPriceFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($goods_list);
@@ -91,6 +92,7 @@ class GoodsPriceService extends BaseService
                         'discount' => $price['plus_discount'],
                         'price_unit' => c('price_unit'),
                     ),
+                    'status' => $price['status'],
                 );
             }
         } else {
@@ -111,6 +113,7 @@ class GoodsPriceService extends BaseService
                     'discount' => $info['plus_discount'],
                     'price_unit' => c('price_unit'),
                 ),
+                'status' => $info['status'],
             );
         }
 
@@ -164,7 +167,7 @@ class GoodsPriceService extends BaseService
         $start = ($page - 1) * $limit;
         $limit_str = "{$start}, {$limit}";
 
-        $db = pdo();
+        $db = db();
         $db->tableName = 'goods_price';
         $list = $db->findAll($where, $field, $sort, $limit_str);
 
@@ -181,10 +184,6 @@ class GoodsPriceService extends BaseService
         $service = s('goods');
         $goods_info = $service->getGoodsInfo($goods_id_arr);
         foreach ($price_list as $price) {
-            //不显示优惠已过期的商品
-            if (!empty($price['end_date']) && time() > $price['end_date']) {
-                continue;
-            }
             $info = array(
                 'goods_id' => $price['goods_id'],
                 'name' => $goods_info[$price['goods_id']]['name'.$this->suffix],
@@ -227,12 +226,6 @@ class GoodsPriceService extends BaseService
         $goods_price = $this->getGoodsPrice($goods_id_arr);
 
         foreach ($goods_list as $goods) {
-//            $discount = $goods_price[$goods['goods_id']]['non_plus_user']['discount'];
-//            $plus_discount = $goods_price[$goods['goods_id']]['plus_user']['discount'];
-//            $end_date = $goods_price[$goods['goods_id']]['promo_date']['end_date'];
-//            if (empty($discount) || empty($plus_discount) || time() > $end_date) {
-//                continue;
-//            }
             $info = array(
                 'goods_id' => $goods['goods_id'],
                 'name' => $goods['name'.$this->suffix],
