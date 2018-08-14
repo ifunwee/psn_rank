@@ -197,6 +197,12 @@ class GoodsService extends BaseService
         $where['goods_id'] = $goods_id;
         $list = $db->findAll($where, 'date,price,plus_price', 'date asc');
 
+        foreach ($list as &$value) {
+            $value['date'] = $value['date'] * 1000;
+            $value['price'] = $value['price'] / 100;
+            $value['plus_price'] = $value['plus_price'] / 100;
+        }
+        unset($value);
         return $list;
     }
 }

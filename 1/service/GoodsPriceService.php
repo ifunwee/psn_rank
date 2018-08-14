@@ -93,7 +93,7 @@ class GoodsPriceService extends BaseService
                         'lowest_price' => number_format($info['plus_lowest_price'] / 100, 2),
                         'discount' => $price['plus_discount'],
                         'price_unit' => c('price_unit'),
-                        'plus_tag' => $price['plus_tag'],
+                        'tag' => $price['plus_tag'],
 
                     ),
                 );
@@ -119,7 +119,7 @@ class GoodsPriceService extends BaseService
                     'lowest_price' => number_format($info['plus_lowest_price'] / 100, 2),
                     'discount' => $info['plus_discount'],
                     'price_unit' => c('price_unit'),
-                    'plus_tag' => $info['plus_tag'],
+                    'tag' => $info['plus_tag'],
                 ),
             );
         }
@@ -237,7 +237,7 @@ class GoodsPriceService extends BaseService
                         'lowest_price' => number_format($price['plus_lowest_price'] / 100, 2),
                         'discount' => $price['plus_discount'],
                         'price_unit' => c('price_unit'),
-                        'plus_tag' => $price['plus_tag'],
+                        'tag' => $price['plus_tag'],
                     ),
                 ),
             );
