@@ -138,7 +138,8 @@ class HandlePs4Game
                 }
             }
 
-            $id = $this->handleData($data);
+            $result = $this->handleData($data);
+            $result && $id = $result;
             echo "商品价格 {$info['store_game_code']} 更新完成 $i";
             echo "\r\n";
             $i++;
@@ -153,7 +154,7 @@ class HandlePs4Game
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $last_id       = 0;
+        $last_id       = 1139;
         $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
         if (empty($list)) {
             return false;
@@ -188,7 +189,7 @@ class HandlePs4Game
                 'name_cn'             => $attr['name'] ?: '',
                 'cover_image_cn'      => $attr['thumbnail-url-base'] ?: '',
                 'description_cn'      => $attr['long-description'] ?: '',
-                'language_support_cn' => $attr['skus'][0]['name'],
+                'language_support_cn' => str_replace('版', '',$attr['skus'][0]['name']),
                 'update_time'         => time(),
             );
 
@@ -248,7 +249,6 @@ class HandlePs4Game
 
     public function handleData($data)
     {
-        $id = 0;
         $item = $data['included'][0];
         $attr = $item['attributes'];
 
@@ -282,7 +282,9 @@ class HandlePs4Game
         );
 
         if (empty($result)) {
-            $db->tableName     = 'goods_price';
+            $db->tableName = 'goods_price';
+            $info['lowest_price'] = $info['sale_price'];
+            $info['plus_lowest_price'] = $info['plus_sale_price'];
             $info['create_time'] = time();
             $db->insert($info);
 

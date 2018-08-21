@@ -23,20 +23,20 @@ class GoodsPriceService extends BaseService
 
         switch ($type) {
             case 'recent':
-                $where = "discount > 0 or plus_discount > 0";
+                $where = "(discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
                 $sort = 'start_date desc, id desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
 
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'plus':
-                $where = "discount = 0 and plus_discount > 0";
+                $where = "discount = 0 and plus_discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
                 $sort = 'plus_discount desc, id desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'discount':
-                $where = "discount > 0";
+                $where = "discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
                 $sort = 'discount desc, id desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
@@ -48,13 +48,13 @@ class GoodsPriceService extends BaseService
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'best':
-                $where = "rating_total > 1000 and (discount > 0 or plus_discount > 0)";
+                $where = "rating_total > 1000 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
                 $sort = 'rating_score desc, a.id desc';
                 $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'hot':
-                $where = "rating_total > 500 and (discount > 0 or plus_discount > 0)";
+                $where = "rating_total > 500 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
                 $sort = 'rating_total desc, a.id desc';
                 $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
