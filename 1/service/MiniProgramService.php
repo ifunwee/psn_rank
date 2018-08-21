@@ -5,11 +5,19 @@ class MiniProgramService extends BaseService
     private $app_id;
     private $app_secret;
     private $sesison_key;
+
     public function __construct()
     {
         parent::__construct();
-        $this->app_id = c('mini_program.app_id');
-        $this->app_secret = c('mini_program.app_secret');
+        $appcode = b('appcode');
+        switch ((int)$appcode) {
+            case 1 : $type = 'trophy'; break;
+            case 2 : $type = 'price'; break;
+            default : exit;
+        }
+
+        $this->app_id = c("mini_program.{$type}.app_id");
+        $this->app_secret = c("mini_program.{$type}.app_secret");
     }
 
     /**
@@ -142,6 +150,7 @@ class MiniProgramService extends BaseService
 
         if (empty($info)) {
             $data['create_time'] = time();
+            $data['appcode'] = b('appcode');
             $db->insert($data);
         } else {
             $data['update_time'] = time();
