@@ -145,7 +145,7 @@ class HandlePs4Game
             $i++;
         }
 
-        $today = date('Y-m-d', time());
+        $today = date('Y-m-d H:i:s', time());
         $history_tips = $id ? "历史价格id新增至 {$id}" : '';
         echo "{$today} 脚本处理完毕 {$history_tips} \r\n";
     }
