@@ -139,4 +139,19 @@ class CommonService extends BaseService
     {
         return strtolower(preg_replace('/([a-z])([A-Z])/', "$1" . $separator . "$2", $camel_caps));
     }
+
+    /**
+     * 过滤4位emoj表情
+     * @param $message
+     *
+     * @return mixed
+     */
+    public function faceExec($message)
+    {
+        $message = preg_replace_callback('/[\xf0-\xf7].{3}/', function ($match) {
+            return '';
+        }, $message);
+
+        return $message;
+    }
 }

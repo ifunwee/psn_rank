@@ -59,6 +59,7 @@ class MiniProgramService extends BaseService
                 if ($this->hasError()) {
                     return $this->setError($this->getError());
                 }
+                $data['nick_name'] = s('Common')->faceExec($data['nick_name']);
                 $info = array(
                     'open_id' => $data['open_id'],
                     'nick_name' => $data['nick_name'],
