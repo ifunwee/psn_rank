@@ -125,8 +125,10 @@ class ProfileService extends BaseService
                         }
                     }
 
-                    array_multisort($sort_arr, SORT_DESC, $data['trophy_titles']);
-                    $data['trophy_titles'] = array_merge($latest_play, $data['trophy_titles']);
+                    if (!empty($sort_arr)) {
+                        array_multisort($sort_arr, SORT_DESC, $data['trophy_titles']);
+                        $data['trophy_titles'] = array_merge($latest_play, $data['trophy_titles']);
+                    }
                 }
 
                 $redis->set($redis_key, json_encode($data));

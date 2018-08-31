@@ -101,8 +101,10 @@ class GoodsService extends BaseService
             $info['screenshots'] = $info['screenshots'] ? json_decode($info['screenshots'], true) : '';
             $info['file_size'] = $info['file_size'] ? $info['file_size'].$info['file_size_unit'] : '';
             $genres_arr = $info['genres'] ? explode(',', $info['genres']) : '';
-            foreach ($genres_arr as $genre) {
-                $info['genres_cn'][] = $this->genres[$genre];
+            if (!empty($genres_arr)) {
+                foreach ($genres_arr as $genre) {
+                    $info['genres_cn'][] = $this->genres[$genre];
+                }
             }
         }
 

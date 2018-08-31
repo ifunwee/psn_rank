@@ -143,15 +143,14 @@ class HandlePs4Game
 
             $result = $this->handleData($data);
             $result && $id = $result;
-            echo "商品价格 {$info['store_game_code']} 更新完成 $i";
-            echo "\r\n";
+            echo "商品价格 {$info['store_game_code']} 更新完成 $i \r\n";
             $i++;
         }
 
         $end = date('Y-m-d H:i:s', time());
         $history_tips = $id ? "历史价格id新增至 {$id}" : '';
-        $cost = ceil((strtotime($start) - strtotime($end))/60);
-        echo "{$end} 脚本处理完毕 {$history_tips} 耗时：{$cost}分 \r\n";
+        $cost = ceil((strtotime($end) - strtotime($start))/60);
+        echo "{$end} 脚本处理完毕 处理数据{$i}条 {$history_tips} 耗时：{$cost}分 \r\n";
     }
 
     public function language()
