@@ -41,7 +41,7 @@ class GoodsService extends BaseService
         }
     }
 
-    public function detail($goods_id)
+    public function detail($goods_id, $open_id)
     {
         if (empty($goods_id)) {
             return $this->setError('param_goods_id_is_empty');
@@ -62,7 +62,8 @@ class GoodsService extends BaseService
             'genres'           => $goods_info['genres' . $this->suffix] ? : '',
             'file_size'        => $goods_info['file_size'],
             'language_support' => $goods_info['language_support' . $this->suffix] ? : '',
-            'status'           => (int)$goods_info['status'],
+            'status'           => $goods_info['status'],
+            'is_follow'        => '0',
         );
 
         $service = s('GoodsPrice');
@@ -75,6 +76,12 @@ class GoodsService extends BaseService
             'plus_price' => floatval($price_info['plus_user']['sale_price']),
         );
         $info['price_history'][] = $current;
+
+        if (!empty($open_id)) {
+            $service = s('Follow');
+            $is_follow = $service->isFollow($open_id, $goods_id);
+            $info['is_follow'] = $is_follow;
+        }
 
         return $info;
     }
@@ -116,8 +123,8 @@ class GoodsService extends BaseService
         if (empty($name)) {
             return $this->setError('param_name_is_empty', '请填写游戏名称');
         }
-//        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status <> 2";
-        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
+        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status <> 2";
+//        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
         $sort = "rating_total DESC";
         $goods_list = $this->getGoodsListFromDb($where, array(), $sort, $page);
         if (empty($goods_list)) {

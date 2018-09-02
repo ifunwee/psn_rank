@@ -4,9 +4,10 @@ class GoodsInterface extends BaseInterface
     public function detail()
     {
         $goods_id = getParam('goods_id');
+        $open_id = getParam('open_id');
 
         $service      = s('Goods', 'cn');
-        $info = $service->detail($goods_id);
+        $info = $service->detail($goods_id, $open_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
