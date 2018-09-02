@@ -162,4 +162,18 @@ class MiniProgramService extends BaseService
         $redis_key = redis_key('account_info', $data['open_id']);
         $redis->hMset($redis_key, $data);
     }
+
+    public function getAccessToken()
+    {
+        $url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={$this->app_id}&secret={$this->app_secret}";
+        $service = s('Common');
+        $response = $service->curl($url);
+        $response = json_decode($response, true);
+    }
+
+    public function collectFormId($open_id, $form_id)
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('collect_form_id', $open_id);
+    }
 }

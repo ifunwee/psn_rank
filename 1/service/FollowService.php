@@ -1,7 +1,7 @@
 <?php
 class FollowService extends BaseService
 {
-    protected $suffix;
+    protected $suffix = '_cn';
     public function __construct($lang = 'cn')
     {
         parent::__construct();
@@ -69,7 +69,7 @@ class FollowService extends BaseService
         );
 
         $info = $db->find($where);
-        $count = $db->num($where);
+        $count = $db->num(array('open_id' => $open_id));
         if (empty($info)) {
             if ($count > 5) {
                 return $this->setError('follow_max_limit', '您的游戏关注数已达上限，请适当删减');

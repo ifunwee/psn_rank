@@ -1,7 +1,7 @@
 <?php
 class GoodsService extends BaseService
 {
-    protected $suffix;
+    protected $suffix = '_cn';
     protected $genres = array(
         'Action'                  => '动作',
         'Adventure'               => '冒险',

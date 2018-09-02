@@ -1,7 +1,7 @@
 <?php
 class GoodsPriceService extends BaseService
 {
-    private $suffix;
+    private $suffix = '_cn';
     public function __construct($lang = 'cn')
     {
         parent::__construct();
