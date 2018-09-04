@@ -17,4 +17,21 @@ class MiniProgramInterface extends BaseInterface
 
         $this->respondSuccess($info);
     }
+
+    public function getAccessToken()
+    {
+        $service      = s('MiniProgram');
+        $info = $service->getAccessToken();
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
+    public function getTemplate()
+    {
+
+    }
 }

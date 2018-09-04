@@ -123,7 +123,7 @@ class GoodsService extends BaseService
         if (empty($name)) {
             return $this->setError('param_name_is_empty', '请填写游戏名称');
         }
-        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status <> 2";
+        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status > 0";
 //        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
         $sort = "rating_total DESC";
         $goods_list = $this->getGoodsListFromDb($where, array(), $sort, $page);

@@ -5,19 +5,21 @@ class MiniProgramService extends BaseService
     private $app_id;
     private $app_secret;
     private $sesison_key;
+    private $type;
 
-    public function __construct()
+    public function __construct($type = null)
     {
         parent::__construct();
         $appcode = b('appcode');
         switch ((int)$appcode) {
-            case 1 : $type = 'trophy'; break;
-            case 2 : $type = 'price'; break;
+            case 1 : $this->type = 'trophy'; break;
+            case 2 : $this->type = 'price'; break;
             default : exit;
         }
 
-        $this->app_id = c("mini_program.{$type}.app_id");
-        $this->app_secret = c("mini_program.{$type}.app_secret");
+        $type && $this->type = $type;
+        $this->app_id = c("mini_program.{$this->type}.app_id");
+        $this->app_secret = c("mini_program.{$this->type}.app_secret");
     }
 
     /**
@@ -165,10 +167,22 @@ class MiniProgramService extends BaseService
 
     public function getAccessToken()
     {
-        $url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={$this->app_id}&secret={$this->app_secret}";
-        $service = s('Common');
-        $response = $service->curl($url);
-        $response = json_decode($response, true);
+        $redis = r('psn_redis');
+        $access_token_key = redis_key("wechat_access_token", $this->type);
+        $access_token = $redis->get($access_token_key);
+        if (empty($access_token)) {
+            $url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={$this->app_id}&secret={$this->app_secret}";
+            $service = s('Common');
+            $response = $service->curl($url);
+            $response = json_decode($response, true);
+            if (isset($response['errcode'])) {
+                return $this->setError($response['errcode'], $response['errmsg']);
+            }
+            $redis->set($access_token_key, $response['access_token'], $response['expires_in']);
+            $access_token = $response['access_token'];
+        }
+
+        return $access_token;
     }
 
     public function collectFormId($open_id, $form_id)

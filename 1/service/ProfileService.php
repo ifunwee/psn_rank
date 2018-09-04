@@ -12,7 +12,7 @@ class ProfileService extends BaseService
     {
         parent::__construct();
         //凌晨数据过期
-        $this->expire_time = strtotime(date('Ymd')) + 86400 + 3600 * 4;
+        $this->expire_time = strtotime(date("Y-m", strtotime("+1 month"))) + 3600 * 4;
         $this->cache_mode = c('cache_mode');
         $refresh && $this->cache_mode = false;
     }
@@ -186,7 +186,7 @@ class ProfileService extends BaseService
             $trophy_earned = $trophy_no_earned = array();
             foreach ($progress['trophies'] as &$trophy) {
                 if ($trophy['compared_user']['earned']) {
-                    $trophy_earned['trophy_group_id'] = ['trophy_group_id'];
+                    $trophy_earned['trophy_group_id'] = $item['trophy_group_id'];
                     $trophy_earned['trophy_group_name'] = $item['trophy_group_name'];
                     //获得奖杯的时间集合
                     $earned_date_arr[] = $trophy['compared_user']['earned_date'];
@@ -217,23 +217,23 @@ class ProfileService extends BaseService
             'last_trophy_earned' =>  $earned_date_arr ? max($earned_date_arr) : '',
         );
 
-        $expire_time   = strtotime(date("Y-m", strtotime("+1 month")));
         $redis = r('psn_redis');
         if ((int)$type == 1) {
             $redis_key = redis_key('psn_game_detail', $game_id);
             $redis->set($redis_key, json_encode($data));
-            $redis->expireAt($redis_key, $expire_time);
+            unset($data['trophy_groups']);
             return $data;
         } else {
             //如果缓存中的奖杯总数与用户进度的总数不一致 则更新缓存数据
             $redis_key = redis_key('psn_game_detail', $game_id);
             $json = $redis->get($redis_key);
             $cache = json_decode($json, true);
-            $cache_trophy_total_num = array_sum($cache['defined_trophies']);
-            if ((int)$cache_trophy_total_num != (int)$trophy_total_num) {
-                $redis_key = redis_key('psn_game_detail', $game_id);
-                $redis->set($redis_key, json_encode($data));
-                $redis->expireAt($redis_key, $expire_time);
+            if (!empty($cache)) {
+                $cache_trophy_total_num = array_sum($cache['defined_trophies']);
+                if ((int)$cache_trophy_total_num != (int)$trophy_total_num) {
+                    $redis_key = redis_key('psn_game_detail', $game_id);
+                    $redis->set($redis_key, json_encode($data));
+                }
             }
 
             //更新游戏概况
