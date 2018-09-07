@@ -189,5 +189,6 @@ class MiniProgramService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('collect_form_id', $open_id);
+        $redis->lpush($redis_key, $form_id);
     }
 }

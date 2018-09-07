@@ -30,8 +30,19 @@ class MiniProgramInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
-    public function getTemplate()
+    public function collectFormId()
     {
+        $open_id = getParam('open_id');
+        $form_id = getParam('form_id');
 
+        $service      = s('MiniProgram');
+        $info = $service->collectFormId($open_id, $form_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
     }
+
 }
