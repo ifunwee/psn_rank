@@ -14,7 +14,6 @@ class MiniProgramService extends BaseService
         switch ((int)$appcode) {
             case 1 : $this->type = 'trophy'; break;
             case 2 : $this->type = 'price'; break;
-            default : exit;
         }
 
         $type && $this->type = $type;
@@ -47,7 +46,7 @@ class MiniProgramService extends BaseService
         $response = $service->curl($url);
         $response = json_decode($response, true);
 
-        if (isset($response['errcode'])) {
+        if (!empty($response['errcode'])) {
             return $this->setError($response['errcode'], $response['errmsg']);
         }
 
@@ -175,7 +174,7 @@ class MiniProgramService extends BaseService
             $service = s('Common');
             $response = $service->curl($url);
             $response = json_decode($response, true);
-            if (isset($response['errcode'])) {
+            if (!empty($response['errcode'])) {
                 return $this->setError($response['errcode'], $response['errmsg']);
             }
             $redis->set($access_token_key, $response['access_token'], $response['expires_in']);
@@ -189,6 +188,60 @@ class MiniProgramService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('collect_form_id', $open_id);
-        $redis->lpush($redis_key, $form_id);
+        $data = $form_id . '_' . time();
+        $redis->lpush($redis_key, $data);
+    }
+
+    public function getFormId($open_id)
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('collect_form_id', $open_id);
+        $form_id_str = $redis->rPop($redis_key);
+
+        if (empty($form_id_str)) {
+            return $this->setError('unavailable_form_id', '没有可用的推送凭证');
+        }
+
+        while ($form_id_str) {
+            $index = strrpos($form_id_str, '_');
+            $form_id = substr($form_id_str, 0, $index);
+            $create_time = substr($form_id_str, $index + 1);
+
+            if (time() - $create_time < 86400 * 7) {
+                $data = array(
+                    'form_id' => $form_id,
+                    'create_time' => $create_time,
+                );
+
+                return $data;
+            }
+            $form_id_str = $redis->rPop($redis_key);
+            if (empty($form_id_str)) {
+                return $this->setError('unavailable_form_id', '没有可用的推送凭证');
+            }
+        }
+    }
+
+    public function sendMessage($data)
+    {
+        $access_token = $this->getAccessToken();
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+        $url = "https://api.weixin.qq.com/cgi-bin/message/wxopen/template/send?access_token={$access_token}";
+        $service = s('Common');
+
+        $header = array(
+            "Content-Type: application/json; charset=UTF-8",
+            "Content-Length: " . strlen($data),
+        );
+
+        $response = $service->curl($url, $header, $data, 'post');
+        $response = json_decode($response, true);
+        if (!empty($response['errcode'])) {
+            return $this->setError($response['errcode'], $response['errmsg']);
+        }
+
+        return $response;
     }
 }

@@ -68,12 +68,13 @@ class FollowService extends BaseService
             'goods_id' => $goods_id,
         );
 
+        $count = $db->num(array('open_id' => $open_id, 'status' => 1));
+        if ((int)$status == 1 && $count > c('follow_limit')) {
+            return $this->setError('follow_max_limit', '您的游戏关注数已达上限，请适当删减');
+        }
+
         $info = $db->find($where);
-        $count = $db->num(array('open_id' => $open_id));
         if (empty($info)) {
-            if ($count > 5) {
-                return $this->setError('follow_max_limit', '您的游戏关注数已达上限，请适当删减');
-            }
             $data = array(
                 'open_id' => $open_id,
                 'goods_id' => $goods_id,

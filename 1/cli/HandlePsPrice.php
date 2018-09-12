@@ -51,6 +51,10 @@ class HandlePsPrice
             $lowest_price = trim($match[3]);
             $plus_lowest_price = trim($match[5]);
 
+            if (empty($goods_id)) {
+                continue;
+            }
+
             if ($lowest_price == 'Free') {
                 $lowest_price = 0;
             } else {

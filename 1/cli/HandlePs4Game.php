@@ -1,6 +1,9 @@
 <?php
-class HandlePs4Game
+class HandlePs4Game extends BaseService
 {
+    /**
+     * np_title_id
+     */
     public function hk()
     {
         $db               = pdo();
@@ -25,6 +28,9 @@ class HandlePs4Game
         echo "脚本处理完毕:" . $redis->zCard($hk_code_list_key);
     }
 
+    /**
+     * 游戏商品入库
+     */
     public function goods()
     {
         $db            = pdo();
@@ -104,6 +110,9 @@ class HandlePs4Game
         echo "脚本处理完毕";
     }
 
+    /**
+     * 游戏价格更新
+     */
     public function price()
     {
         $start = date('Y-m-d H:i:s', time());
@@ -142,6 +151,10 @@ class HandlePs4Game
             }
 
             $result = $this->handleData($data);
+            if ($this->hasError()) {
+                $this->flushError();
+                continue;
+            }
             $result && $id = $result;
             echo "商品价格 {$info['store_game_code']} 更新完成 $i \r\n";
             $i++;
@@ -153,11 +166,14 @@ class HandlePs4Game
         echo "{$end} 脚本处理完毕 处理数据{$i}条 {$history_tips} 耗时：{$cost}分 \r\n";
     }
 
+    /**
+     * 游戏中文更新
+     */
     public function language()
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $last_id       = 1139;
+        $last_id       = 0;
         $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
         if (empty($list)) {
             return false;
@@ -254,22 +270,37 @@ class HandlePs4Game
     {
         $item = $data['included'][0];
         $attr = $item['attributes'];
+        $default_sku_id = $attr['default-sku-id'];
+        $index = null;
+
+        if (!is_array($attr['skus'])) {
+            return $this->setError('skus_info_is_invalid');
+        }
+        foreach ($attr['skus'] as $key => $sku_info) {
+            if ($sku_info['id'] == $default_sku_id) {
+                 $index = $key;
+            }
+        }
+
+        if (!is_numeric($index)) {
+            return $this->setError('find_default_sku_id_fail');
+        }
 
         $db = pdo();
         $db->tableName     = 'goods_price';
         $where['goods_id'] = $item['id'];
         $result            = $db->find($where);
 
-        $status            = empty($attr['skus'][0]['prices']) ? 0 : 1;
-        $status            = empty($attr['skus'][0]['is-preorder']) ? $status : 2;
-        $origin_price      = $attr['skus'][0]['prices']['non-plus-user']['strikethrough-price']['value'];
-        $sale_price        = $attr['skus'][0]['prices']['non-plus-user']['actual-price']['value'];
-        $discount          = $attr['skus'][0]['prices']['non-plus-user']['discount-percentage'];
-        $plus_origin_price = $attr['skus'][0]['prices']['plus-user']['strikethrough-price']['value'];
-        $plus_sale_price   = $attr['skus'][0]['prices']['plus-user']['actual-price']['value'];
-        $plus_discount     = $attr['skus'][0]['prices']['plus-user']['discount-percentage'];
-        $start_date        = $attr['skus'][0]['prices']['non-plus-user']['availability']['start-date'];
-        $end_date          = $attr['skus'][0]['prices']['non-plus-user']['availability']['end-date'];
+        $status            = empty($attr['skus'][$index]['prices']) ? 0 : 1;
+        $status            = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
+        $origin_price      = $attr['skus'][$index]['prices']['non-plus-user']['strikethrough-price']['value'];
+        $sale_price        = $attr['skus'][$index]['prices']['non-plus-user']['actual-price']['value'];
+        $discount          = $attr['skus'][$index]['prices']['non-plus-user']['discount-percentage'];
+        $plus_origin_price = $attr['skus'][$index]['prices']['plus-user']['strikethrough-price']['value'];
+        $plus_sale_price   = $attr['skus'][$index]['prices']['plus-user']['actual-price']['value'];
+        $plus_discount     = $attr['skus'][$index]['prices']['plus-user']['discount-percentage'];
+        $start_date        = $attr['skus'][$index]['prices']['non-plus-user']['availability']['start-date'];
+        $end_date          = $attr['skus'][$index]['prices']['non-plus-user']['availability']['end-date'];
 
         $info = array(
             'goods_id'          => $item['id'] ?: '',
@@ -303,9 +334,9 @@ class HandlePs4Game
             );
             $id = $db->insert($data);
         } else {
-            if ($sale_price != $result['sale_price'] || $plus_sale_price != $result['plus_sale_price']) {
+            if ((is_numeric($sale_price) && $sale_price != $result['sale_price']) || (is_numeric($plus_sale_price) && $plus_sale_price != $result['plus_sale_price'])) {
                 //判断价格是否新低
-                if (is_numeric($sale_price) && $sale_price == $result['lowest_price']) {
+                if ($sale_price == $result['lowest_price']) {
                     //持平
                     $info['tag'] = 2;
                 } else if ($sale_price < $result['lowest_price']) {
@@ -318,7 +349,7 @@ class HandlePs4Game
                 }
 
                 //判断会员价格是否新低
-                if (is_numeric($plus_sale_price) && $plus_sale_price == $result['plus_lowest_price']) {
+                if ($plus_sale_price == $result['plus_lowest_price']) {
                     //持平
                     $info['plus_tag'] = 2;
                 } else if ($plus_sale_price < $result['plus_lowest_price']) {
@@ -363,4 +394,75 @@ class HandlePs4Game
 
         return $id;
     }
+
+    /**
+     * 降价通知
+     */
+    public function reducePriceNotice()
+    {
+        $date = strtotime(date('Y-m-d', time()));
+        $redis = r('psn_redis');
+        $db = pdo();
+        $sql = "select a.*,b.plus_origin_price,b.plus_tag from goods_price_history a left join goods_price b on a.goods_id = b.goods_id where a.date = {$date} and a.start_date > 0";
+        $list = $db->query($sql);
+        if (empty($list)) {
+            log::n('discount_goods_is_empty');
+            return false;
+        }
+        $service = s('MiniProgram', 'price');
+        $goods_service = s('Goods');
+        $goods_id_arr = array_column($list, 'goods_id');
+
+        $goods_info_arr = $goods_service->getGoodsInfo($goods_id_arr);
+        foreach ($list as $info) {
+            $db->tableName = 'follow';
+            $condition['goods_id'] = $info['goods_id'];
+            $follow_list = $db->findAll($condition);
+            foreach ($follow_list as $follow_info) {
+                $content['touser'] = $follow_info['open_id'];
+                $content['template_id'] = 'UXUVm5TNEs3KQD9ei7aBI_QkaVSTizW15vVmOeaBvAM';
+                $content['page'] = 'pages/detail/detail?goods_id=' . $info['goods_id'];
+                $form_id = $service->getFormId($follow_info['open_id']);
+                if ($service->hasError()) {
+                    log::w("get_form_id_fail: {$follow_info['open_id']} " . json_encode($service->getError()));
+                    $service->flushError();
+                    continue;
+                }
+                $content['form_id'] = $form_id['form_id'];
+                $start_date = date('Y-m-d', $info['start_date']);
+                $end_date = $info['end_date'] ? date('Y-m-d', $info['end_date']) : '未知期限';
+                $content['data'] = array(
+                    'keyword1' => array(
+                        'value' => $goods_info_arr[$info['goods_id']]['name_cn'],
+                    ),
+                    'keyword2' => array(
+                        'value' => "{$start_date} 至 {$end_date}",
+                    ),
+                    'keyword3' => array(
+                        'value' => $info['plus_origin_price']/100 . '港币',
+                    ),
+                    'keyword4' => array(
+                        'value' => $info['plus_price']/100 . '港币',
+                    ),
+                    'keyword5' => array(
+                        'value' => $info['plus_tag'] > 0 ? $info['plus_tag'] == 1 ? '历史新低': '持平史低' : '无',
+                    ),
+                );
+                $json = json_encode($content);
+                $service->sendMessage($json);
+                if ($service->hasError()) {
+                    log::w("send_message_fail:" . json_encode($service->getError()) . $json);
+                    $service->flushError();
+                    continue;
+                }
+                log::i("send_message_success: {$follow_info['open_id']} {$info['goods_id']}");
+                echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']}";
+
+                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id']);
+                $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
+                $redis->set($redis_key, time(), $expire_time);
+            }
+        }
+    }
+
 }
