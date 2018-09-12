@@ -188,6 +188,10 @@ class MiniProgramService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('collect_form_id', $open_id);
+        $count = $redis->lLen($redis_key);
+        if ($count > 10) {
+            $redis->rPop($redis_key);
+        }
         $data = $form_id . '_' . time();
         $redis->lpush($redis_key, $data);
     }
