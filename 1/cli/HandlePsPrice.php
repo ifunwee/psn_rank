@@ -43,6 +43,7 @@ class HandlePsPrice
         $list = $redis->zrange($item_url_key, 0, -1);
         $i = 1;
         foreach ($list as $url) {
+//            $url = 'https://psprices.com/region-hk/game/1005013/horizon-zero-dawntm';
             $response = $service->curl($url);
 //            var_dump($response);exit;
             $preg = '/href=\"https:\/\/store.playstation.com\/en-hk\/product\/(.*?)\"(.*?)<strong>Lowest price<\/strong>: (.*?),(.*?)<strong>PS\+<\/strong>: (.*?)<\/div>/is';
@@ -98,6 +99,7 @@ class HandlePsPrice
         $i = 1;
         foreach ($list as $url) {
             $data = array();
+//            $url = 'https://psprices.com/region-hk/game/1835423/horizon-zero-dawntm-complete-edition';
             $response = $service->curl($url);
             $preg = '/href=\"https:\/\/store.playstation.com\/en-hk\/product\/(.*?)\"/is';
             preg_match($preg, $response, $match);
@@ -110,6 +112,7 @@ class HandlePsPrice
             $db->tableName     = 'goods_price';
             $where['goods_id'] = $goods_id;
             $result            = $db->find($where);
+//            var_dump($goods_id);exit;
 
             if (empty($result)) {
                 echo "商品库找不到该商品: {$goods_id} {$url} \r\n";
@@ -126,10 +129,10 @@ class HandlePsPrice
             $item = substr(trim($item), 0, -1);
             $json = '{"history":['. $item .']}';
             $reuslt = json_decode($json, true);
-            foreach ($reuslt['history'] as $value) {
-                $data[$value[0]]['goods_id'] = $goods_id;
-                $data[$value[0]]['date'] = $value[0];
-                $data[$value[0]]['price'] = $value[1] * 100;
+            foreach ($reuslt['history'] as $key => $value) {
+                $data[$key]['goods_id'] = $goods_id;
+                $data[$key]['date'] = $value[0];
+                $data[$key]['price'] = $value[1] * 100;
             }
 
             $preg = '/name: \"PS\+\",(.*?)data: \[(.*?)\[Date\.now/is';
@@ -143,15 +146,16 @@ class HandlePsPrice
             $json = '{"plus_history":['. $item .']}';
             $reuslt = json_decode($json, true);
 
-            foreach ($reuslt['plus_history'] as $value) {
-                $data[$value[0]]['goods_id'] = $goods_id;
-                $data[$value[0]]['date'] = $value[0];
-                $data[$value[0]]['plus_price'] = $value[1] * 100;
+            foreach ($reuslt['plus_history'] as $key => $value) {
+                $data[$key]['goods_id'] = $goods_id;
+                $data[$key]['date'] = $value[0];
+                $data[$key]['plus_price'] = $value[1] * 100;
             }
-
+//var_dump($data);exit;
             try {
+                $db->tableName = 'goods_price_history';
+                $db->delete(array('goods_id' => $goods_id));
                 foreach ($data as $info) {
-                    $db->tableName = 'goods_price_history';
                     $info['create_time'] = time();
                     $db->preInsert($info);
                 }

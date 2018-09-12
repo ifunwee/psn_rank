@@ -407,6 +407,7 @@ class HandlePs4Game extends BaseService
         $list = $db->query($sql);
         if (empty($list)) {
             log::n('discount_goods_is_empty');
+            echo date('Y-m-d H:i:s') . " 暂无发现降价商品";
             return false;
         }
         $service = s('MiniProgram', 'price');
@@ -417,6 +418,7 @@ class HandlePs4Game extends BaseService
         foreach ($list as $info) {
             $db->tableName = 'follow';
             $condition['goods_id'] = $info['goods_id'];
+            $condition['status'] = 1;
             $follow_list = $db->findAll($condition);
             foreach ($follow_list as $follow_info) {
                 $content['touser'] = $follow_info['open_id'];

@@ -26,6 +26,7 @@ class CommonService extends BaseService
             curl_setopt($ch, CURLOPT_COOKIE, $cookie);
         }
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
         $output = curl_exec($ch);
 
         //        $curl_info = curl_getinfo($ch);
