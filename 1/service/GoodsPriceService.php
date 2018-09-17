@@ -2,6 +2,14 @@
 class GoodsPriceService extends BaseService
 {
     private $suffix = '_cn';
+    private $promotion_type = array(
+        'recent',     //最新优惠
+        'hot',        //热门游戏
+        'plus',       //会员独享
+        'expire',     //即将过期
+        'discount',   //折扣力度
+        'best',       //最佳口碑
+    );
     public function __construct($lang = 'cn')
     {
         parent::__construct();
@@ -15,10 +23,46 @@ class GoodsPriceService extends BaseService
         }
     }
 
+    public function getPromotionTab()
+    {
+        $data = array(
+            array(
+                'title' => '最新优惠',
+                'type' => 'recent',
+            ),
+            array(
+                'title' => '热门游戏',
+                'type' => 'hot',
+            ),
+            array(
+                'title' => '会员独享',
+                'type' => 'plus',
+            ),
+            array(
+                'title' => '即将过期',
+                'type' => 'expire',
+            ),
+            array(
+                'title' => '折扣力度',
+                'type' => 'discount',
+            ),
+            array(
+                'title' => '最佳口碑',
+                'type' => 'best',
+            ),
+        );
+
+        return $data;
+    }
+
     public function getPromotionList($type, $page = 1, $limit = 20)
     {
         if (empty($type)) {
             return $this->setError('param_type_is_empty');
+        }
+
+        if (!in_array($type, $this->promotion_type)) {
+            return $this->setError('invalid_promotion_type');
         }
 
         switch ($type) {

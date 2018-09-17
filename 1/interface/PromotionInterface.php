@@ -8,14 +8,14 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('recent', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('recent', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**
@@ -25,14 +25,14 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('plus', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('plus', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**
@@ -42,14 +42,14 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('discount', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('discount', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**
@@ -59,14 +59,14 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('expire', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('expire', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**
@@ -76,14 +76,14 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('best', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('best', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**
@@ -93,13 +93,40 @@ class PromotionInterface extends BaseInterface
     {
         $page = getParam('page');
 
-        $service      = s('GoodsPrice', 'cn');
-        $info = $service->getPromotionList('hot', $page);
+        $service      = s('GoodsPrice');
+        $result = $service->getPromotionList('hot', $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
+    }
+    
+    public function getTab()
+    {
+        $service = s('GoodsPrice');
+        $result = $service->getPromotionTab();
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
+    }
+
+    public function getTabList()
+    {
+        $type = getParam('type');
+        $page = getParam('page');
+
+        $service = s('GoodsPrice');
+        $result = $service->getPromotionList($type, $page);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
     }
 }

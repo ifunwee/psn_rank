@@ -203,15 +203,24 @@ class HandlePs4Game extends BaseService
 
             $db->tableName     = 'goods';
             $where['goods_id'] = $item['id'];
+            $result = $db->find($where);
+            if (empty($result)) {
+                continue;
+            }
 
             $info = array(
-                'name_cn'             => $attr['name'] ?: '',
                 'cover_image_cn'      => $attr['thumbnail-url-base'] ?: '',
                 'description_cn'      => $attr['long-description'] ?: '',
                 'language_support_cn' => str_replace('版', '',$attr['skus'][0]['name']),
                 'update_time'         => time(),
+                'rating_score'        => $attr['star-rating']['score'] ?: 0,
+                'rating_total'        => $attr['star-rating']['total'] ?: 0,
             );
 
+            if ((int)$result['is_final'] == 0) {
+                $name = $attr['name'] ?: '';
+                $info['name_cn'] = $name;
+            }
             $info['description_cn'] = strip_tags($info['description_cn'], '<br>');
             $info['description_cn'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description_cn']);
             $db->update($info, $where);
@@ -407,7 +416,7 @@ class HandlePs4Game extends BaseService
         $list = $db->query($sql);
         if (empty($list)) {
             log::n('discount_goods_is_empty');
-            echo date('Y-m-d H:i:s') . " 暂无发现降价商品";
+            echo date('Y-m-d H:i:s') . " 暂无发现降价商品 \r\n";
             return false;
         }
         $service = s('MiniProgram', 'price');
@@ -465,6 +474,49 @@ class HandlePs4Game extends BaseService
                 $redis->set($redis_key, time(), $expire_time);
             }
         }
+    }
+
+    public function handleDisplayName()
+    {
+        $json = require VERSION_PATH .'/cli/json.php';
+        $list = json_decode($json, true);
+        if (!is_array($list)) {
+            echo 'data_invalid';
+        }
+
+        $db = pdo();
+        $db->tableName = 'goods';
+        foreach ($list as $info) {
+            if (empty($info['goods_id'])) {
+                continue;
+            }
+            $where['goods_id'] = $info['goods_id'];
+            $data['name_cn'] = $info['name'];
+            $data['is_final'] = 1;
+            $data['update_time'] = time();
+            try {
+                $db->update($data, $where);
+                echo "更新自定义中文名成功：{$info['goods_id']} {$info['name']} \r\n";
+            } catch (Exception $e) {
+                echo $e->getMessage();
+            }
+        }
+    }
+
+    public function exportHotGame()
+    {
+        $db = pdo();
+        $db->tableName = 'goods';
+        $where = "rating_total > 100";
+        $list = $db->findAll($where, '*', 'rating_total desc');
+        $data = array();
+        foreach ($list as $info) {
+            $temp['goods_id'] = $info['goods_id'];
+            $temp['name'] = $info['name_cn'];
+            $data[] = $temp;
+        }
+
+        var_dump(json_encode($data));exit;
     }
 
 }
