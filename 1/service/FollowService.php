@@ -84,9 +84,9 @@ class FollowService extends BaseService
 
             $db->insert($data);
         } else {
-            if ((int)$status == $info['status']) {
-                return $this->setError('repeat_operate', '请勿重复操作');
-            }
+//            if ((int)$status == $info['status']) {
+//                return $this->setError('repeat_operate', '请勿重复操作');
+//            }
             $data = array(
                 'open_id' => $open_id,
                 'goods_id' => $goods_id,

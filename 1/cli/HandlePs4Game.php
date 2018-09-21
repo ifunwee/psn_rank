@@ -64,6 +64,17 @@ class HandlePs4Game extends BaseService
             $item = $data['included'][0];
             $attr = $item['attributes'];
 
+            $default_sku_id = $attr['default-sku-id'];
+            $index = null;
+
+            if (is_array($attr['skus'])) {
+                foreach ($attr['skus'] as $key => $sku_info) {
+                    if ($sku_info['id'] == $default_sku_id) {
+                        $index = $key;
+                    }
+                }
+            }
+
             $product_id_arr = explode('-', $info['store_game_code']);
             $np_title_id    = $product_id_arr[1];
 
@@ -87,7 +98,7 @@ class HandlePs4Game extends BaseService
                 'file_size'        => $attr['file-size']['value'] ?: 0,
                 'file_size_unit'   => $attr['file-size']['unit'] ?: '',
                 'genres'           => $attr['genres'] ? implode(',', $attr['genres']) : '',
-                'language_support' => $attr['skus'][0]['name'],
+                'language_support' => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
             );
 
             $info['description'] = strip_tags($info['description'], '<br>');
@@ -201,6 +212,17 @@ class HandlePs4Game extends BaseService
             $item = $data['included'][0];
             $attr = $item['attributes'];
 
+            $default_sku_id = $attr['default-sku-id'];
+            $index = null;
+
+            if (is_array($attr['skus'])) {
+                foreach ($attr['skus'] as $key => $sku_info) {
+                    if ($sku_info['id'] == $default_sku_id) {
+                        $index = $key;
+                    }
+                }
+            }
+
             $db->tableName     = 'goods';
             $where['goods_id'] = $item['id'];
             $result = $db->find($where);
@@ -211,7 +233,7 @@ class HandlePs4Game extends BaseService
             $info = array(
                 'cover_image_cn'      => $attr['thumbnail-url-base'] ?: '',
                 'description_cn'      => $attr['long-description'] ?: '',
-                'language_support_cn' => str_replace('版', '',$attr['skus'][0]['name']),
+                'language_support_cn' => is_numeric($index) ? str_replace('版', '',$attr['skus'][$index]['name']) : '',
                 'update_time'         => time(),
                 'rating_score'        => $attr['star-rating']['score'] ?: 0,
                 'rating_total'        => $attr['star-rating']['total'] ?: 0,
@@ -467,7 +489,7 @@ class HandlePs4Game extends BaseService
                     continue;
                 }
                 log::i("send_message_success: {$follow_info['open_id']} {$info['goods_id']}");
-                echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']}";
+                echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']} \r\n";
 
                 $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id']);
                 $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
