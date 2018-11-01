@@ -10,6 +10,7 @@ class GoodsPriceService extends BaseService
         'discount',   //折扣力度
         'best',       //最佳口碑
     );
+
     public function __construct($lang = 'cn')
     {
         parent::__construct();
@@ -292,29 +293,6 @@ class GoodsPriceService extends BaseService
         return $list;
     }
 
-    private function completeGoodsPrice($goods_list)
-    {
-        $list = array();
-        if (empty($goods_list)) {
-            return $list;
-        }
-        $goods_id_arr = array_column($goods_list, 'goods_id');
-        $goods_price = $this->getGoodsPrice($goods_id_arr);
 
-        foreach ($goods_list as $goods) {
-            $info = array(
-                'goods_id' => $goods['goods_id'],
-                'name' => $goods['name'.$this->suffix],
-                'cover_image' => $goods['cover_image'.$this->suffix],
-                'language_support' => $goods['language_support'.$this->suffix],
-                'rating_score' => $goods['rating_score'],
-                'rating_total' => $goods['rating_total'],
-                'price' => $goods_price[$goods['goods_id']],
-            );
-            $list[] = $info;
-        }
-
-        return $list;
-    }
 
 }

@@ -28,6 +28,13 @@ class GoodsService extends BaseService
         'Unique'                  => '独特游戏',
     );
 
+    protected $discovery_type = array(
+        'latest',     //最新游戏
+        'coming',     //即将到来
+        'hot',       //热门游戏
+        'best',      //评分最高
+    );
+
     public function __construct($lang = 'cn')
     {
         parent::__construct();
@@ -219,6 +226,100 @@ class GoodsService extends BaseService
             $value['plus_price'] = $value['plus_price'] / 100;
         }
         unset($value);
+        return $list;
+    }
+
+    private function completeGoodsPrice($goods_list)
+    {
+        $list = array();
+        if (empty($goods_list)) {
+            return $list;
+        }
+
+        $service = s('goodsPrice');
+        $goods_id_arr = array_column($goods_list, 'goods_id');
+        $goods_price = $service->getGoodsPrice($goods_id_arr);
+
+        foreach ($goods_list as $goods) {
+            $info = array(
+                'goods_id' => $goods['goods_id'],
+                'name' => $goods['name'.$this->suffix],
+                'cover_image' => $goods['cover_image'.$this->suffix],
+                'language_support' => $goods['language_support'.$this->suffix],
+                'rating_score' => $goods['rating_score'],
+                'rating_total' => $goods['rating_total'],
+                'status' => $goods['status'],
+                'price' => $goods_price[$goods['goods_id']],
+            );
+            $list[] = $info;
+        }
+
+        return $list;
+    }
+
+    public function getDiscoveryTab()
+    {
+        $data = array(
+            array(
+                'title' => '最新游戏',
+                'type' => 'latest',
+            ),
+            array(
+                'title' => '即将发售',
+                'type' => 'coming',
+            ),
+            array(
+                'title' => '热门游戏',
+                'type' => 'hot',
+            ),
+            array(
+                'title' => '最高评分',
+                'type' => 'best',
+            ),
+        );
+
+        return $data;
+    }
+
+    public function getDiscoveryList($type, $page = 1, $limit = 20)
+    {
+        if (empty($type)) {
+            return $this->setError('param_type_is_empty');
+        }
+
+        if (!in_array($type, $this->discovery_type)) {
+            return $this->setError('invalid_discovery_type');
+        }
+
+        switch ($type) {
+            case 'latest':
+                $where = "release_date <= UNIX_TIMESTAMP() and status <> 0";
+                $sort = 'release_date desc, id desc';
+                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
+
+                $list = $this->completeGoodsPrice($goods_list);
+                break;
+            case 'coming':
+                $where = "release_date > UNIX_TIMESTAMP() and status <> 0";
+                $sort = 'release_date asc, id desc';
+                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
+                $list = $this->completeGoodsPrice($goods_list);
+                break;
+            case 'best':
+                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status <> 0";
+                $sort = 'rating_score desc, id desc';
+                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
+                $list = $this->completeGoodsPrice($goods_list);
+                break;
+            case 'hot':
+                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status <> 0";
+                $sort = 'rating_total desc, id desc';
+                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
+                $list = $this->completeGoodsPrice($goods_list);
+                break;
+            default :
+                return $this->setError('invalid_type');
+        }
         return $list;
     }
 }

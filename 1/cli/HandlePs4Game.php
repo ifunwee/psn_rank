@@ -452,6 +452,13 @@ class HandlePs4Game extends BaseService
             $condition['status'] = 1;
             $follow_list = $db->findAll($condition);
             foreach ($follow_list as $follow_info) {
+                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id']);
+                $lock = $redis->get($redis_key);
+                if ($lock) {
+                    echo "reduce_price_notice_lock:{$follow_info['open_id']} \r\n";
+                    continue;
+                }
+
                 $content['touser'] = $follow_info['open_id'];
                 $content['template_id'] = 'UXUVm5TNEs3KQD9ei7aBI_QkaVSTizW15vVmOeaBvAM';
                 $content['page'] = 'pages/detail/detail?goods_id=' . $info['goods_id'];
@@ -484,6 +491,7 @@ class HandlePs4Game extends BaseService
                 $json = json_encode($content);
                 $service->sendMessage($json);
                 if ($service->hasError()) {
+                    echo "send_message_fail: {$follow_info['open_id']} {$info['goods_id']} \r\n";
                     log::w("send_message_fail:" . json_encode($service->getError()) . $json);
                     $service->flushError();
                     continue;
@@ -491,7 +499,6 @@ class HandlePs4Game extends BaseService
                 log::i("send_message_success: {$follow_info['open_id']} {$info['goods_id']}");
                 echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']} \r\n";
 
-                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id']);
                 $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
                 $redis->set($redis_key, time(), $expire_time);
             }

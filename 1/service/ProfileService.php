@@ -60,7 +60,7 @@ class ProfileService extends BaseService
 
         if (!empty($json)) {
             $data = json_decode($json, true);
-            if (!empty($data['profile'])) {
+            if (!empty($data['profile']['trophy_summary']['level'])) {
                 $avatar_url = $data['profile']['avatar_urls'][0]['avatar_url'];
                 unset($data['profile']['avatar_urls']);
                 $data['profile']['avatar_url'] = $avatar_url;
@@ -489,7 +489,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'R7QrZNqF6PEXkhQxQ6nCRrYTglnF1tQ9LnfFGFY0ON2ux0WRFFGj1qpNlt9LJupI';
+        $npsso = 'TNsEps0aau4TNd1DdzDqYij2mmZiJKJ2igCrhTgn9eHs7haQaECiFEY36oA0bnIS';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
