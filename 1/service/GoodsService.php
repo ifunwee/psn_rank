@@ -132,7 +132,7 @@ class GoodsService extends BaseService
         }
 //        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status > 0";
         $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
-        $sort = "rating_total DESC";
+        $sort = "status DESC, rating_total DESC";
         $goods_list = $this->getGoodsListFromDb($where, array(), $sort, $page);
         if (empty($goods_list)) {
             return array();

@@ -36,7 +36,7 @@ class HandlePs4Game extends BaseService
         $db            = pdo();
         $db->tableName = 'game_code';
         $last_id       = 0;
-        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
+        $list          = $db->findAll("id > {$last_id}", '*', 'id desc');
         if (empty($list)) {
             return false;
         }
@@ -185,7 +185,7 @@ class HandlePs4Game extends BaseService
         $db            = pdo();
         $db->tableName = 'game_code';
         $last_id       = 0;
-        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
+        $list          = $db->findAll("id > {$last_id}", '*', 'id desc');
         if (empty($list)) {
             return false;
         }
@@ -452,10 +452,10 @@ class HandlePs4Game extends BaseService
             $condition['status'] = 1;
             $follow_list = $db->findAll($condition);
             foreach ($follow_list as $follow_info) {
-                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id']);
+                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id'], $info['goods_id']);
                 $lock = $redis->get($redis_key);
                 if ($lock) {
-                    echo "reduce_price_notice_lock:{$follow_info['open_id']} \r\n";
+                    echo "reduce_price_notice_lock:{$follow_info['open_id']}  {$info['goods_id']} \r\n";
                     continue;
                 }
 
@@ -500,7 +500,8 @@ class HandlePs4Game extends BaseService
                 echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']} \r\n";
 
                 $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
-                $redis->set($redis_key, time(), $expire_time);
+                $redis->set($redis_key, time());
+                $redis->expireAt($redis_key, $expire_time);
             }
         }
     }
