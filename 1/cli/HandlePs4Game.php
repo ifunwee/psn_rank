@@ -118,7 +118,8 @@ class HandlePs4Game extends BaseService
             $i++;
         }
 
-        echo "脚本处理完毕";
+        $date = date('Y-m-d H:i:s', time());
+        echo "{$date} 脚本处理完毕";
     }
 
     /**
@@ -252,7 +253,8 @@ class HandlePs4Game extends BaseService
             $i++;
         }
 
-        echo "脚本处理完毕";
+        $date = date('Y-m-d H:i:s', time());
+        echo "{$date} 脚本处理完毕";
     }
 
     protected function getLastPrice($goods_id)

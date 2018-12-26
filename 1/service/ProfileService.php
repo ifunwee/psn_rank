@@ -115,8 +115,9 @@ class ProfileService extends BaseService
         if (!empty($json)) {
             $data = json_decode($json, true);
             if (!empty($data['trophy_titles'])) {
-                if (count($data['trophy_titles']) > 6) {
+                if (count($data['trophy_titles']) > 20) {
                     $latest_play = array_splice($data['trophy_titles'], 0, 6);
+//                    var_dump($data['trophy_titles']);exit;
                     foreach ($data['trophy_titles'] as $key => $item) {
                         if ($item["compared_user"]["progress"] > 0) {
                             $sort_arr[] = $item["compared_user"]["progress"];
@@ -127,6 +128,8 @@ class ProfileService extends BaseService
                     if (!empty($sort_arr)) {
                         array_multisort($sort_arr, SORT_DESC, $data['trophy_titles']);
                         $data['trophy_titles'] = array_merge($latest_play, $data['trophy_titles']);
+                    } else {
+                        $data['trophy_titles'] = $latest_play;
                     }
                 }
 

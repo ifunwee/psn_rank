@@ -27,6 +27,11 @@ class CommonService extends BaseService
         }
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 10);//设置请求最多重定向的次数
+
+//        curl_setopt($ch, CURLOPT_PROXY, "192.168.1.110"); //代理服务器地址
+//        curl_setopt($ch, CURLOPT_PROXYPORT, 9999); //代理服务器端口
         $output = curl_exec($ch);
 
         //        $curl_info = curl_getinfo($ch);
