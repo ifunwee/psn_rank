@@ -5,13 +5,6 @@ class BannerService extends BaseService
     {
         $data = array(
             array(
-                'type' => '4',
-                'image' => 'http://pj2gywe55.bkt.clouddn.com/WechatIMG149.jpeg',
-                'extra' => array(
-                    'url' => 'https://mp.weixin.qq.com/s/oi5XfqCttUtrRJlp6lEV5A',
-                ),
-            ),
-            array(
                 'type' => '1',
                 'image' => 'https://s1.ax1x.com/2018/12/12/FYRV8U.jpg',
                 'extra' => array(
