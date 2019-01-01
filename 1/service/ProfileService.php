@@ -492,7 +492,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'TNsEps0aau4TNd1DdzDqYij2mmZiJKJ2igCrhTgn9eHs7haQaECiFEY36oA0bnIS';
+        $npsso = '654mFB4Y848RDaZw4ATBCnb8FluWujnfD0u82DORYzQWaEktFWrqgKTkUD9KpFLy';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
