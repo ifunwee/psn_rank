@@ -6,7 +6,20 @@ class BannerService extends BaseService
         $data = array(
             array(
                 'type' => '1',
-                'image' => 'https://s1.ax1x.com/2018/12/12/FYRV8U.jpg',
+                'image' => 'http://playstation-image.funwee.com/WechatIMG5697.png',
+                'extra' => array(
+                    'title' => 'PB37QFERHK',
+                    'content' => '此代码于港服商店结算时输入可以享受9折优惠，每人仅限使用一次；更多信息请查看Playstation官方网站。',
+                    'cancel_text' => '取消',
+                    'confirm_text' => '复制',
+                    'cancel_url' => '',
+                    'confirm_url' => '',
+                    'clipboard_data' => 'PB37QFERHK',
+                ),
+            ),
+            array(
+                'type' => '1',
+                'image' => 'http://playstation-image.funwee.com/FYRV8U.jpg',
                 'extra' => array(
                     'title' => "合作伙伴介绍",
                     'content' => 'UPGAME 是 Playstation 官方优选店,经营多平台主机游戏/周边/配件。关注公众号「UPGAME玩家快讯」立即体验。（复制后用微信搜索公众号）',
@@ -15,19 +28,6 @@ class BannerService extends BaseService
                     'cancel_url' => '',
                     'confirm_url' => '',
                     'clipboard_data' => 'upgame100',
-                ),
-            ),
-            array(
-                'type' => '1',
-                'image' => 'https://i.loli.net/2018/12/22/5c1d20996013b.jpg',
-                'extra' => array(
-                    'title' => "优惠码",
-                    'content' => '',
-                    'cancel_text' => '取消',
-                    'confirm_text' => '复制',
-                    'cancel_url' => '',
-                    'confirm_url' => '',
-                    'clipboard_data' => 'PB37QFERHK',
                 ),
             ),
         );
