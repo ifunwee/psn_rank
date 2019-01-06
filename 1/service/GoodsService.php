@@ -90,9 +90,7 @@ class GoodsService extends BaseService
             $info['is_follow'] = $is_follow;
         }
 
-        if (!empty($info['cover_image']) && strpos($info['cover_image'], 'http') === false) {
-            $info['cover_image'] = c("playstation_image_domain") . $info['cover_image'] . '?imageView2/0/w/480/h/480';
-        }
+        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
         return $info;
     }
 
@@ -156,6 +154,8 @@ class GoodsService extends BaseService
                 'status' => $goods['status'],
                 'price' => $goods_price[$goods['goods_id']],
             );
+
+            $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
             $list[] = $info;
         }
 
