@@ -244,6 +244,10 @@ class HandlePs4Game extends BaseService
                 $name = $attr['name'] ?: '';
                 $info['name_cn'] = $name;
             }
+
+            if (!empty($info['cover_image_cn'])) {
+                $info['cover_image_cn'] = str_replace('https://store.playstation.com', '', $info['cover_image_cn']);
+            }
             $info['description_cn'] = strip_tags($info['description_cn'], '<br>');
             $info['description_cn'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description_cn']);
             $db->update($info, $where);

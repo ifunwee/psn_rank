@@ -90,6 +90,9 @@ class GoodsService extends BaseService
             $info['is_follow'] = $is_follow;
         }
 
+        if (!empty($info['cover_image']) && strpos($info['cover_image'], 'http') === false) {
+            $info['cover_image'] = c("playstation_image_domain") . $info['cover_image'] . '?imageView2/0/w/480/h/480';
+        }
         return $info;
     }
 
