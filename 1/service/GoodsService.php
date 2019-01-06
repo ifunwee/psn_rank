@@ -90,7 +90,7 @@ class GoodsService extends BaseService
             $info['is_follow'] = $is_follow;
         }
 
-        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
+        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480);
         return $info;
     }
 
