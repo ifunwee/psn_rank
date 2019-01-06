@@ -164,7 +164,7 @@ class CommonService extends BaseService
     public function handlePsnImage($image)
     {
         if (!empty($image) && strpos($image, 'http') === false) {
-            $handle_image = c("playstation_image_domain") . $image . '?imageView2/0/w/480/h/480';
+            $handle_image = c("playstation_image_domain") . $image . '?imageView2/0/w/200/h/200';
         } else {
             $handle_image = $image;
         }
