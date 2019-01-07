@@ -6,19 +6,6 @@ class BannerService extends BaseService
         $data = array(
             array(
                 'type' => '1',
-                'image' => 'http://playstation-image.funwee.com/WechatIMG5697.png',
-                'extra' => array(
-                    'title' => 'PB37QFERHK',
-                    'content' => '此代码于港服商店结算时输入可以享受9折优惠，每人仅限使用一次；更多信息请查看Playstation官方网站。',
-                    'cancel_text' => '取消',
-                    'confirm_text' => '复制',
-                    'cancel_url' => '',
-                    'confirm_url' => '',
-                    'clipboard_data' => 'PB37QFERHK',
-                ),
-            ),
-            array(
-                'type' => '1',
                 'image' => 'http://playstation-image.funwee.com/FYRV8U.jpg',
                 'extra' => array(
                     'title' => "合作伙伴介绍",
