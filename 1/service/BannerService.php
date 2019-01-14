@@ -6,6 +6,19 @@ class BannerService extends BaseService
         $data = array(
             array(
                 'type' => '1',
+                'image' => 'http://playstation-image.funwee.com/index_banner4.png',
+                'extra' => array(
+                    'title' => "游戏基GameNews",
+                    'content' => '每天5分钟，尽晓游戏资讯。专为主机玩家量身定制，追求简单、全面、快捷、有趣。（点击复制后用微信搜索公众号即可关注）',
+                    'cancel_text' => '取消',
+                    'confirm_text' => '复制',
+                    'cancel_url' => '',
+                    'confirm_url' => '',
+                    'clipboard_data' => 'GameNews',
+                ),
+            ),
+            array(
+                'type' => '1',
                 'image' => 'http://playstation-image.funwee.com/FYRV8U.jpg',
                 'extra' => array(
                     'title' => "合作伙伴介绍",
