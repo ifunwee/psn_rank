@@ -78,27 +78,34 @@ class HandlePs4Game extends BaseService
             $product_id_arr = explode('-', $info['store_game_code']);
             $np_title_id    = $product_id_arr[1];
 
+            $parent_product_id_arr = array();
+            $parent_goods_id    = $attr['parent']['id'];
+            $parent_goods_id && $parent_product_id_arr = explode('-', $parent_goods_id);
+
+            $parent_np_title_id = $parent_product_id_arr[1];
+
             $db->tableName     = 'goods';
             $where['goods_id'] = $item['id'];
             $result            = $db->find($where);
 
             $info = array(
-                'goods_id'         => $item['id'] ?: '',
-                'np_title_id'      => $np_title_id ?: '',
-                'name'             => $attr['name'] ?: '',
-                'cover_image'      => $attr['thumbnail-url-base'] ?: '',
-                'description'      => $attr['long-description'] ?: '',
-                'rating_score'     => $attr['star-rating']['score'] ?: 0,
-                'rating_total'     => $attr['star-rating']['total'] ?: 0,
-                'preview'          => !empty($attr['media-list']['preview']) ? json_encode($attr['media-list']['preview']) : '',
-                'screenshots'      => !empty($attr['media-list']['screenshots']) ? json_encode($attr['media-list']['screenshots']) : '',
-                'release_date'     => $attr['release-date']? strtotime($attr['release-date']) : 0,
-                'publisher'        => $attr['provider-name'] ?: '',
-                'developer'        => '',
-                'file_size'        => $attr['file-size']['value'] ?: 0,
-                'file_size_unit'   => $attr['file-size']['unit'] ?: '',
-                'genres'           => $attr['genres'] ? implode(',', $attr['genres']) : '',
-                'language_support' => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
+                'goods_id'           => $item['id'] ?: '',
+                'np_title_id'        => $np_title_id ?: '',
+                'parent_np_title_id' => $parent_np_title_id ?: '',
+                'name'               => $attr['name'] ?: '',
+                'cover_image'        => $attr['thumbnail-url-base'] ?: '',
+                'description'        => $attr['long-description'] ?: '',
+                'rating_score'       => $attr['star-rating']['score'] ?: 0,
+                'rating_total'       => $attr['star-rating']['total'] ?: 0,
+                'preview'            => !empty($attr['media-list']['preview']) ? json_encode($attr['media-list']['preview']) : '',
+                'screenshots'        => !empty($attr['media-list']['screenshots']) ? json_encode($attr['media-list']['screenshots']) : '',
+                'release_date'       => $attr['release-date'] ? strtotime($attr['release-date']) : 0,
+                'publisher'          => $attr['provider-name'] ?: '',
+                'developer'          => '',
+                'file_size'          => $attr['file-size']['value'] ?: 0,
+                'file_size_unit'     => $attr['file-size']['unit'] ?: '',
+                'genres'             => $attr['genres'] ? implode(',', $attr['genres']) : '',
+                'language_support'   => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
             );
 
             $info['description'] = strip_tags($info['description'], '<br>');
@@ -117,7 +124,6 @@ class HandlePs4Game extends BaseService
             echo "\r\n";
             $i++;
         }
-
         $date = date('Y-m-d H:i:s', time());
         echo "{$date} 脚本处理完毕";
     }
@@ -328,28 +334,28 @@ class HandlePs4Game extends BaseService
         $where['goods_id'] = $item['id'];
         $result            = $db->find($where);
 
-        $status            = empty($attr['skus'][$index]['prices']) ? 0 : 1;
-        $status            = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
-        $origin_price      = $attr['skus'][$index]['prices']['non-plus-user']['strikethrough-price']['value'];
-        $sale_price        = $attr['skus'][$index]['prices']['non-plus-user']['actual-price']['value'];
-        $discount          = $attr['skus'][$index]['prices']['non-plus-user']['discount-percentage'];
-        $plus_origin_price = $attr['skus'][$index]['prices']['plus-user']['strikethrough-price']['value'];
-        $plus_sale_price   = $attr['skus'][$index]['prices']['plus-user']['actual-price']['value'];
-        $plus_discount     = $attr['skus'][$index]['prices']['plus-user']['discount-percentage'];
-        $start_date        = $attr['skus'][$index]['prices']['non-plus-user']['availability']['start-date'];
-        $end_date          = $attr['skus'][$index]['prices']['non-plus-user']['availability']['end-date'];
+        $status             = empty($attr['skus'][$index]['prices']) ? 0 : 1;
+        $status             = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
+        $origin_price       = $attr['skus'][$index]['prices']['non-plus-user']['strikethrough-price']['value'];
+        $sale_price         = $attr['skus'][$index]['prices']['non-plus-user']['actual-price']['value'];
+        $discount           = $attr['skus'][$index]['prices']['non-plus-user']['discount-percentage'];
+        $plus_origin_price  = $attr['skus'][$index]['prices']['plus-user']['strikethrough-price']['value'];
+        $plus_sale_price    = $attr['skus'][$index]['prices']['plus-user']['actual-price']['value'];
+        $plus_discount      = $attr['skus'][$index]['prices']['plus-user']['discount-percentage'];
+        $start_date         = $attr['skus'][$index]['prices']['non-plus-user']['availability']['start-date'];
+        $end_date           = $attr['skus'][$index]['prices']['non-plus-user']['availability']['end-date'];
 
         $info = array(
-            'goods_id'          => $item['id'] ?: '',
-            'origin_price'      => is_numeric($origin_price) ? $origin_price : null,
-            'sale_price'        => is_numeric($sale_price) ? $sale_price : null,
-            'discount'          => is_numeric($discount) ? $discount : null,
-            'plus_origin_price' => is_numeric($plus_origin_price) ? $plus_origin_price : null,
-            'plus_sale_price'   => is_numeric($plus_sale_price) ? $plus_sale_price : null,
-            'plus_discount'     => is_numeric($plus_discount) ? $plus_discount : null,
-            'start_date'        => $start_date ? strtotime($start_date) : 0,
-            'end_date'          => $end_date ? strtotime($end_date) : 0,
-            'status'            => $status,
+            'goods_id'           => $item['id'] ?: '',
+            'origin_price'       => is_numeric($origin_price) ? $origin_price : null,
+            'sale_price'         => is_numeric($sale_price) ? $sale_price : null,
+            'discount'           => is_numeric($discount) ? $discount : null,
+            'plus_origin_price'  => is_numeric($plus_origin_price) ? $plus_origin_price : null,
+            'plus_sale_price'    => is_numeric($plus_sale_price) ? $plus_sale_price : null,
+            'plus_discount'      => is_numeric($plus_discount) ? $plus_discount : null,
+            'start_date'         => $start_date ? strtotime($start_date) : 0,
+            'end_date'           => $end_date ? strtotime($end_date) : 0,
+            'status'             => $status,
         );
 
         if (empty($result)) {
