@@ -158,6 +158,7 @@ class FollowService extends BaseService
                 'status' => $goods['status'],
                 'price' => $goods_price[$goods['goods_id']],
             );
+            $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
             $list[] = $info;
         }
 
