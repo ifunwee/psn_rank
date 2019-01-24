@@ -5,6 +5,14 @@ class BannerService extends BaseService
     {
         $data = array(
             array(
+                'type' => '3',
+                'image' => 'http://playstation-image.funwee.com/h3cbanner',
+                'extra' => array(
+                    'appid' => "wxa1dcaffea12dc248",
+                    'path' => '/pages/product/detail/detail?pid=paNrs0zbJpIQTOUbiLe8uL5rhtfs',
+                ),
+            ),
+            array(
                 'type' => '1',
                 'image' => 'http://playstation-image.funwee.com/index_banner4.png',
                 'extra' => array(
