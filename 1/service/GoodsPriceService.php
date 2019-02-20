@@ -81,7 +81,7 @@ class GoodsPriceService extends BaseService
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'discount':
-                $where = "discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)";
+                $where = "discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and status > 0";
                 $sort = 'discount desc, id desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
@@ -93,13 +93,13 @@ class GoodsPriceService extends BaseService
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'best':
-                $where = "rating_total > 500 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and status > 0";
+                $where = "rating_total > 500 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and b.status > 0";
                 $sort = 'rating_score desc, a.id desc';
                 $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'hot':
-                $where = "rating_total > 100 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and status > 0";
+                $where = "rating_total > 100 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and b.status > 0";
                 $sort = 'rating_total desc, a.id desc';
                 $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);

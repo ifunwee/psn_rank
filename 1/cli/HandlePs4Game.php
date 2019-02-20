@@ -352,9 +352,11 @@ class HandlePs4Game extends BaseService
         $db = pdo();
         $goods_id = $data['data']['relationships']['children']['data'][0]['id'];
         if (isset($goods_id) && $handle_goods_id != $goods_id) {
-            $db->tableName = 'goods';
             $goods['status'] = -1;
             $goods['update_time'] = time();
+            $db->tableName = 'goods';
+            $db->update($goods, array('goods_id' => $handle_goods_id));
+            $db->tableName = 'goods_price';
             $db->update($goods, array('goods_id' => $handle_goods_id));
             return $this->setError('goods_id_is_not_match');
         }
@@ -368,6 +370,8 @@ class HandlePs4Game extends BaseService
             $db->tableName = 'goods';
             $goods['status'] = 0;
             $goods['update_time'] = time();
+            $db->update($goods, array('goods_id' => $handle_goods_id));
+            $db->tableName = 'goods_price';
             $db->update($goods, array('goods_id' => $handle_goods_id));
             return $this->setError('default_sku_id_is_empty');
         }
