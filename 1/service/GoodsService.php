@@ -3,29 +3,29 @@ class GoodsService extends BaseService
 {
     protected $suffix = '_cn';
     protected $genres = array(
-        'Action'                  => '动作',
-        'Adventure'               => '冒险',
-        'Arcade'                  => '街机',
-        'Board Games'             => '桌上游戏',
-        'Casual'                  => '休闲',
-        'Education'               => '教育',
-        'Family'                  => '家庭',
-        'Fighting'                => '格斗',
-        'Fitness'                 => '健身',
-        'Horror'                  => '恐怖',
-        'Music/Rhythm'            => '音乐&节奏',
-        'Party'                   => '派对',
-        'Platformer'              => '横板过关',
-        'Puzzle'                  => '益智',
-        'Quiz'                    => '问答游戏',
-        'Racing'                  => '赛车',
-        'Role-Playing Games (RPG)'=> '角色扮演',
-        'Shooter'                 => '射击',
-        'Simulation'              => '模拟',
-        'Simulator'               => '模拟器',
-        'Sports'                  => '运动',
-        'Strategy'                => '战略',
-        'Unique'                  => '独特游戏',
+        'action'                  => '动作',
+        'adventure'               => '冒险',
+        'arcade'                  => '街机',
+        'board_games'             => '桌上游戏',
+        'casual'                  => '休闲',
+        'education'               => '教育',
+        'family'                  => '家庭',
+        'fighting'                => '格斗',
+        'fitness'                 => '健身',
+        'horror'                  => '恐怖',
+        'music_rhythm'            => '音乐&节奏',
+        'party'                   => '派对',
+        'platformer'              => '横板过关',
+        'puzzle'                  => '益智',
+        'quiz'                    => '问答游戏',
+        'racing'                  => '赛车',
+        'role_playing_games'      => '角色扮演',
+        'shooter'                 => '射击',
+        'simulation'              => '模拟',
+        'simulator'               => '模拟器',
+        'sports'                  => '运动',
+        'strategy'                => '战略',
+        'unique'                  => '独特游戏',
     );
 
     protected $discovery_type = array(
@@ -131,8 +131,8 @@ class GoodsService extends BaseService
         if (empty($name)) {
             return $this->setError('param_name_is_empty', '请填写游戏名称');
         }
-//        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status > 0";
-        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
+        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%') and status > 0";
+//        $where = "(name LIKE '%{$name}%' OR name_cn LIKE '%{$name}%')";
         $sort = "status DESC, rating_total DESC";
         $goods_list = $this->getGoodsListFromDb($where, array(), $sort, $page);
         if (empty($goods_list)) {
