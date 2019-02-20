@@ -1,6 +1,32 @@
 <?php
 class HandlePs4Game extends BaseService
 {
+    protected $genres = array(
+        'Action'                  => 'action',
+        'Adventure'               => 'adventure',
+        'Arcade'                  => 'arcade',
+        'Board Games'             => 'board_games',
+        'Casual'                  => 'casual',
+        'Education'               => 'education',
+        'Family'                  => 'family',
+        'Fighting'                => 'fighting',
+        'Fitness'                 => 'fitness',
+        'Horror'                  => 'horror',
+        'MUSIC/RHYTHM'            => 'music_rhythm',
+        'Party'                   => 'party',
+        'Platformer'              => 'platformer',
+        'Puzzle'                  => 'puzzle',
+        'Quiz'                    => 'quiz',
+        'Racing'                  => 'racing',
+        'Role-Playing Games (RPG)'=> 'role_playing_games',
+        'Shooter'                 => 'shooter',
+        'Simulation'              => 'simulation',
+        'Simulator'               => 'simulator',
+        'Sports'                  => 'sports',
+        'Strategy'                => 'strategy',
+        'Unique'                  => 'unique',
+    );
+
     /**
      * np_title_id
      */
@@ -88,6 +114,17 @@ class HandlePs4Game extends BaseService
             $where['goods_id'] = $item['id'];
             $result            = $db->find($where);
 
+            if (is_array($attr['genres'])) {
+                foreach ($attr['genres'] as &$member) {
+                    if (!empty($this->genres[$member])) {
+                        $member = $this->genres[$member];
+                    } else {
+                        echo "无法识别的genres: {$member} \r\n";
+                        continue;
+                    }
+                }
+                unset($member);
+            }
             $info = array(
                 'goods_id'           => $item['id'] ?: '',
                 'np_title_id'        => $np_title_id ?: '',
@@ -168,8 +205,9 @@ class HandlePs4Game extends BaseService
                 }
             }
 
-            $result = $this->handleData($data);
+            $result = $this->handleData($data, $info['store_game_code']);
             if ($this->hasError()) {
+                echo "商品价格 {$info['store_game_code']} 更新失败： {$this->getErrorCode()} \r\n";
                 $this->flushError();
                 continue;
             }
@@ -304,17 +342,35 @@ class HandlePs4Game extends BaseService
             }
         }
 
-        $id = $this->handleData($data);
+        $id = $this->handleData($data, $goods_id);
         $history_tips = $id ? "历史价格id新增至 {$id}" : '';
         echo "商品价格 {$goods_id} 更新完成 {$history_tips} \r\n";
     }
 
-    public function handleData($data)
+    public function handleData($data, $handle_goods_id)
     {
+        $db = pdo();
+        $goods_id = $data['data']['relationships']['children']['data'][0]['id'];
+        if (isset($goods_id) && $handle_goods_id != $goods_id) {
+            $db->tableName = 'goods';
+            $goods['status'] = -1;
+            $goods['update_time'] = time();
+            $db->update($goods, array('goods_id' => $handle_goods_id));
+            return $this->setError('goods_id_is_not_match');
+        }
+
         $item = $data['included'][0];
         $attr = $item['attributes'];
         $default_sku_id = $attr['default-sku-id'];
         $index = null;
+
+        if (empty($default_sku_id)) {
+            $db->tableName = 'goods';
+            $goods['status'] = 0;
+            $goods['update_time'] = time();
+            $db->update($goods, array('goods_id' => $handle_goods_id));
+            return $this->setError('default_sku_id_is_empty');
+        }
 
         if (!is_array($attr['skus'])) {
             return $this->setError('skus_info_is_invalid');
@@ -329,13 +385,18 @@ class HandlePs4Game extends BaseService
             return $this->setError('find_default_sku_id_fail');
         }
 
-        $db = pdo();
+        $status = empty($attr['skus'][$index]['prices']) ? 0 : 1;
+        $status = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
+
+        $db->tableName = 'goods';
+        $goods['status'] = $status;
+        $goods['update_time'] = time();
+        $db->update($goods, array('goods_id' => $handle_goods_id));
+
         $db->tableName     = 'goods_price';
         $where['goods_id'] = $item['id'];
         $result            = $db->find($where);
 
-        $status             = empty($attr['skus'][$index]['prices']) ? 0 : 1;
-        $status             = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
         $origin_price       = $attr['skus'][$index]['prices']['non-plus-user']['strikethrough-price']['value'];
         $sale_price         = $attr['skus'][$index]['prices']['non-plus-user']['actual-price']['value'];
         $discount           = $attr['skus'][$index]['prices']['non-plus-user']['discount-percentage'];
@@ -425,11 +486,6 @@ class HandlePs4Game extends BaseService
                 $db->update($info, $where);
             }
         }
-
-        $db->tableName = 'goods';
-        $goods['status'] = $status;
-        $goods['update_time'] = time();
-        $db->update($goods, $where);
 
         unset($data);
         unset($info);
@@ -559,6 +615,103 @@ class HandlePs4Game extends BaseService
         }
 
         var_dump(json_encode($data));exit;
+    }
+
+    public function game()
+    {
+        $sql = "select * from (select * from goods where `status` > 0 and `parent_np_title_id` = '' order by `rating_total` desc) as t group by name order by id asc";
+        $db = db();
+        $db->tableName = 'game';
+        $list = $db->query($sql);
+        if (empty($list)) {
+            return false;
+        }
+
+        foreach ($list as $goods)
+        {
+            $game_id = $this->generateGameId();
+            if ($this->hasError()) {
+                log::e('generate_game_id_fial:' . json_encode($this->getError()));
+                return false;
+            }
+
+            $game = array(
+                'game_id' => $game_id,
+                'np_title_id' => $goods['np_title_id'],
+                'origin_name' => $goods['name'],
+                'display_name' => $goods['name_cn'],
+                'other_name' => '',
+                'cover_image' => $goods['cover_image'],
+                'is_only' => 0,
+                'other_platform' => '',
+                'developer' => $goods['developer'],
+                'publisher' => $goods['publisher'],
+                'franchises' => '',
+                'genres' => $goods['genres'],
+                'release_date' => $goods['release_date'],
+                'description' => $goods['description'],
+                'screenshots' => $goods['screenshots'],
+                'videos' => $goods['preview'],
+            );
+
+            $db->insert($game);
+            echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
+        }
+    }
+
+    public function generateGameId()
+    {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('game_id_list');
+        $i = 1;
+
+        while ($i <= 100) {
+            $game_id = mt_rand(100001, 199999);
+            $is_member = $redis->sIsMember($redis_key, $game_id);
+            if (!empty($is_member)) {
+                $i++;
+            } else {
+                $redis->sAdd($redis_key, $game_id);
+                return $game_id;
+            }
+
+            if ($i >= 100) {
+                return $this->setError('generate_game_id_fail', '无法生成合适的game_id, 已重试100次');
+            }
+        }
+    }
+
+    public function syncFollowListToCache()
+    {
+        $db = pdo();
+        $db->tableName = 'follow';
+        $where['status'] = 1;
+        $page = 1;
+        $limit = 1000;
+        $redis = r('psn_redis');
+
+        $is_loop = true;
+        while ($is_loop) {
+            $start = ($page - 1) * $limit;
+            $limit_str = "{$start}, {$limit}";
+            $list = $db->findAll($where, '*', 'id desc', $limit_str);
+
+            if (empty($list)) {
+                $is_loop = false;
+            } else {
+                foreach ($list as $info) {
+                    $account_follow_key = redis_key('account_follow', $info['open_id']);
+                    $goods_follow_key = redis_key('goods_follow', $info['goods_id']);
+                    $redis->zAdd($account_follow_key, $info['create_time'], $info['goods_id']);
+                    $redis->sAdd($goods_follow_key, $info['open_id']);
+
+                    echo "同步 {$info['open_id']} 关注 {$info['goods_id']} 成功，关注时间:{$info['create_time']} \r\n";
+                }
+                $page++;
+            }
+        }
+
+        echo '脚本处理完成';
     }
 
 }
