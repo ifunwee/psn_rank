@@ -60,7 +60,7 @@ class ProfileService extends BaseService
 
         if (!empty($json)) {
             $data = json_decode($json, true);
-            if (!empty($data['profile']['trophy_summary']['level'])) {
+            if (is_numeric($data['profile']['trophy_summary']['level'])) {
                 $avatar_url = $data['profile']['avatar_urls'][0]['avatar_url'];
                 unset($data['profile']['avatar_urls']);
                 $data['profile']['avatar_url'] = $avatar_url;
@@ -90,7 +90,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
         $param = array(
-            'npLanguage' => 'zh-TW',
+            'npLanguage' => 'zh-CN',
             'fields' => '@default,trophyTitleSmallIconUrl',
             'platform' => 'PS4,PSVITA,PS3',
             'returnUrlScheme' => 'http',
@@ -117,7 +117,6 @@ class ProfileService extends BaseService
             if (!empty($data['trophy_titles'])) {
                 if (count($data['trophy_titles']) > 20) {
                     $latest_play = array_splice($data['trophy_titles'], 0, 6);
-//                    var_dump($data['trophy_titles']);exit;
                     foreach ($data['trophy_titles'] as $key => $item) {
                         if ($item["compared_user"]["progress"] > 0) {
                             $sort_arr[] = $item["compared_user"]["progress"];
@@ -223,7 +222,6 @@ class ProfileService extends BaseService
         if ((int)$type == 1) {
             $redis_key = redis_key('psn_game_detail', $game_id);
             $redis->set($redis_key, json_encode($data));
-            unset($data['trophy_groups']);
             return $data;
         } else {
             //如果缓存中的奖杯总数与用户进度的总数不一致 则更新缓存数据
@@ -274,7 +272,7 @@ class ProfileService extends BaseService
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups?";
         $param = array(
-            'npLanguage' => 'zh-TW',
+            'npLanguage' => 'zh-CN',
             'fields' => '@default,trophyTitleSmallIconUrl,trophyGroupSmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
@@ -334,7 +332,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups/{$version_id}/trophies?";
         $param = array(
-            'npLanguage' => 'zh-TW',
+            'npLanguage' => 'zh-CN',
             'fields' => '@default,trophyRare,trophyEarnedRate,hasTrophyGroups,trophySmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
@@ -492,7 +490,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = '654mFB4Y848RDaZw4ATBCnb8FluWujnfD0u82DORYzQWaEktFWrqgKTkUD9KpFLy';
+        $npsso = 'ai0rDZzKRLWbEYdqIjd3f5gibiGSJlufTRY3Al6ldchXMIXBNenyPbTX6811LIUw';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
