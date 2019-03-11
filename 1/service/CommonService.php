@@ -36,12 +36,19 @@ class CommonService extends BaseService
 
 //                $curl_info = curl_getinfo($ch);
 
-        //        $error     = curl_error($ch);
-        //        $errno     = curl_errno($ch);
+        $error     = curl_error($ch);
+        $errno     = curl_errno($ch);
+        $curl_info = curl_getinfo($ch);
+
+        if ($error) {
+            Log::e("request_curl_exception code:{$errno} msg:{$error} url:{$url} debug_info:" . var_export($curl_info, true));
+            curl_close($ch);
+            return $this->setError($errno, $error);
+        }
 
         //        var_dump($errno, $error);exit;
 
-//        curl_close($ch);
+        curl_close($ch);
         return $output;
 
     }
