@@ -90,7 +90,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyTitleSmallIconUrl',
             'platform' => 'PS4,PSVITA,PS3',
             'returnUrlScheme' => 'http',
@@ -272,7 +272,7 @@ class ProfileService extends BaseService
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyTitleSmallIconUrl,trophyGroupSmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
@@ -332,7 +332,7 @@ class ProfileService extends BaseService
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups/{$version_id}/trophies?";
         $param = array(
-            'npLanguage' => 'zh-CN',
+            'npLanguage' => 'zh-TW',
             'fields' => '@default,trophyRare,trophyEarnedRate,hasTrophyGroups,trophySmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
