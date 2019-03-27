@@ -12,7 +12,7 @@ class ProfileService extends BaseService
     {
         parent::__construct();
         //凌晨数据过期
-        $this->expire_time = strtotime(date("Y-m", strtotime("+1 month"))) + 3600 * 4;
+        $this->expire_time = strtotime(date("Y-m", strtotime("+1 week")));
         $this->cache_mode = c('cache_mode');
         $refresh && $this->cache_mode = false;
     }
