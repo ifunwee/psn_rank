@@ -186,6 +186,7 @@ class MiniProgramService extends BaseService
 
     public function collectFormId($open_id, $form_id)
     {
+        return false;
         $redis = r('psn_redis');
         $redis_key = redis_key('collect_form_id', $open_id);
         $count = $redis->lLen($redis_key);
