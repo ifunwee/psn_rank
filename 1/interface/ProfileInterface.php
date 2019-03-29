@@ -55,8 +55,10 @@ class ProfileInterface extends BaseInterface
     {
         $psn_id = getParam('psn_id');
         $game_id = getParam('game_id');
+        $refresh = getParam('refresh', 0);
 
-        $service      = s('Profile');
+
+        $service      = s('Profile', $refresh);
         $info = $service->getGameDetail($psn_id, $game_id);
 
         if ($service->hasError()) {
