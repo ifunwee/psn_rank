@@ -36,11 +36,10 @@ class MarketService extends BaseService
         $reg_code_key = redis_key('loan_reg_code', $mobile);
         $redis->set($reg_code_key, $rand, 300);
 
-        $content = "操作验证码: {$rand}, 5分钟内有效。";
+        $content = "【五行缺钱】 验证码：{$rand}，请在10分钟内完成验证。如非本人操作，请忽略。";
 
         $service = s('ChuanglanSms');
         $result = $service->sendSMS($mobile, $content);
-        return null;
 
         if(!is_null(json_decode($result))){
 
@@ -71,11 +70,11 @@ class MarketService extends BaseService
         $redis = r('psn_redis');
         $reg_code_key = redis_key('loan_reg_code', $mobile);
         $check_code = $redis->get($reg_code_key);
-//        if ($code != $check_code) {
-//            return $this->setError('code_is_invalid', '验证码错误或已失效');
-//        } else {
-//            $redis->expire($reg_code_key, 0);
-//        }
+        if ($code != $check_code) {
+            return $this->setError('code_is_invalid', '验证码错误或已失效');
+        } else {
+            $redis->expire($reg_code_key, 0);
+        }
 
         $db = pdo('loan_db');
         $db->tableName = 'account';
@@ -89,7 +88,7 @@ class MarketService extends BaseService
 
         $data = array(
             'mobile' => $mobile,
-            'channel_id' => $channel_id,
+            'channel_id' => $channel_id ? $channel_id : 0,
             'create_time' => time(),
         );
 
