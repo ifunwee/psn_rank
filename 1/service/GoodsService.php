@@ -91,6 +91,12 @@ class GoodsService extends BaseService
         }
 
         $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480);
+        $service = s('Game');
+        $game_info = $service->getGameInfoFromDb($goods_info['game_id']);
+        $info['game'] = array(
+            'mc_score' => $game_info['mc_score'] ? : 0,
+            'comment_num' => $game_info['comment_num'] ? : 0,
+        );
         return $info;
     }
 
