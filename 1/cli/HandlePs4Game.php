@@ -145,6 +145,9 @@ class HandlePs4Game extends BaseService
                 'language_support'   => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
             );
 
+            if (!empty($info['cover_image'])) {
+                $info['cover_image'] = str_replace('https://store.playstation.com', '', $info['cover_image']);
+            }
             $info['description'] = strip_tags($info['description'], '<br>');
             $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
 
@@ -593,12 +596,13 @@ class HandlePs4Game extends BaseService
                 continue;
             }
             $where['goods_id'] = $info['goods_id'];
-            $data['name_cn'] = $info['name'];
+            $data['name'] = $info['name'];
+            $data['name_cn'] = $info['name_cn'];
             $data['is_final'] = 1;
             $data['update_time'] = time();
             try {
+                echo "更新商品名称成功：{$info['goods_id']} {$info['name_cn']} \r\n";
                 $db->update($data, $where);
-                echo "更新自定义中文名成功：{$info['goods_id']} {$info['name']} \r\n";
             } catch (Exception $e) {
                 echo $e->getMessage();
             }
@@ -609,22 +613,22 @@ class HandlePs4Game extends BaseService
     {
         $db = pdo();
         $db->tableName = 'goods';
-        $where = "rating_total > 100";
+        $where = "is_final = 1";
         $list = $db->findAll($where, '*', 'rating_total desc');
         $data = array();
         foreach ($list as $info) {
             $temp['goods_id'] = $info['goods_id'];
-            $temp['name'] = $info['name_cn'];
+            $temp['name'] = $info['name'];
+            $temp['name_cn'] = $info['name_cn'];
             $data[] = $temp;
         }
-
         var_dump(json_encode($data));exit;
     }
 
     public function game()
     {
-        $sql = "select * from (select * from goods where `status` > 0 and `parent_np_title_id` = '' order by `rating_total` desc) as t group by name order by id asc";
-        $db = db();
+        $sql = "select *,sum(rating_total) as rating_total_all from (select * from goods where `status` > 0 and `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
+        $db = pdo();
         $db->tableName = 'game';
         $list = $db->query($sql);
         if (empty($list)) {
@@ -639,26 +643,41 @@ class HandlePs4Game extends BaseService
                 return false;
             }
 
+            $goods['name'] = str_replace('™', '', $goods['name']);
+            $goods['name'] = str_replace('®', '', $goods['name']);
             $game = array(
                 'game_id' => $game_id,
                 'np_title_id' => $goods['np_title_id'],
                 'origin_name' => $goods['name'],
                 'display_name' => $goods['name_cn'],
                 'other_name' => '',
-                'cover_image' => $goods['cover_image'],
-                'is_only' => 0,
+                'cover_image' => $goods['cover_image_cn'],
                 'other_platform' => '',
                 'developer' => $goods['developer'],
                 'publisher' => $goods['publisher'],
                 'franchises' => '',
                 'genres' => $goods['genres'],
                 'release_date' => $goods['release_date'],
-                'description' => $goods['description'],
+                'description' => $goods['description_cn'],
+                'language_support' => $goods['language_support_cn'],
+                'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
                 'screenshots' => $goods['screenshots'],
                 'videos' => $goods['preview'],
+                'rating_total' => $goods['rating_total_all'],
+                'create_time' => time(),
             );
 
-            $db->insert($game);
+            $db->startTrans();
+            try {
+                $db->insert($game);
+                $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
+                $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
+            } catch (Exception $e) {
+                $db->rollBackTrans();
+                echo "写入数据库出现异常：{$e->getMessage()}";
+            }
+            $db->commitTrans();
+
             echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
         }
     }
@@ -706,8 +725,13 @@ class HandlePs4Game extends BaseService
                 foreach ($list as $info) {
                     $account_follow_key = redis_key('account_follow', $info['open_id']);
                     $goods_follow_key = redis_key('goods_follow', $info['goods_id']);
-                    $redis->zAdd($account_follow_key, $info['create_time'], $info['goods_id']);
-                    $redis->sAdd($goods_follow_key, $info['open_id']);
+                    if ($info['goods_id'] == 'undefined') {
+                        $redis->zRem($account_follow_key, $info['goods_id']);
+                        $redis->sRem($goods_follow_key, $info['open_id']);
+                    } else {
+                        $redis->zAdd($account_follow_key, $info['create_time'], $info['goods_id']);
+                        $redis->sAdd($goods_follow_key, $info['open_id']);
+                    }
 
                     echo "同步 {$info['open_id']} 关注 {$info['goods_id']} 成功，关注时间:{$info['create_time']} \r\n";
                 }
@@ -717,5 +741,6 @@ class HandlePs4Game extends BaseService
 
         echo '脚本处理完成';
     }
+
 
 }
