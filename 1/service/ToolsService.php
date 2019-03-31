@@ -39,7 +39,7 @@ class ToolsService extends BaseService
                 continue;
             }
 
-            $upload[] = $response;
+            $upload[] = c('app_image_domain').$response;
         }
 
         $result['upload'] = $upload;
