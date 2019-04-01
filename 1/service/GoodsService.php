@@ -94,8 +94,10 @@ class GoodsService extends BaseService
         $service = s('Game');
         $game_info = $service->getGameInfoFromDb($goods_info['game_id']);
         $info['game'] = array(
-            'mc_score' => $game_info['mc_score'] ? : 0,
-            'comment_num' => $game_info['comment_num'] ? : 0,
+            'game_id' => $goods_info['game_id'],
+            'display_name' => $game_info['display_name'] ? : '',
+            'mc_score' => $game_info['mc_score'] ? : '0',
+            'post_num' => $game_info['post_num'] ? : '0',
         );
         return $info;
     }
