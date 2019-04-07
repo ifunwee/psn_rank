@@ -627,10 +627,11 @@ class HandlePs4Game extends BaseService
 
     public function game()
     {
-        $sql = "select *,sum(rating_total) as rating_total_all from (select * from goods where `status` > 0 and `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
+        $sql = "select *,sum(rating_total) as rating_total_all from (select * from goods where `status` > 0 and `id` > 2050  and `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
         $db = pdo();
         $db->tableName = 'game';
         $list = $db->query($sql);
+
         if (empty($list)) {
             return false;
         }
@@ -742,5 +743,31 @@ class HandlePs4Game extends BaseService
         echo '脚本处理完成';
     }
 
+    public function gameDiscount()
+    {
+        $db = pdo();
+        $db->tableName = 'game';
+        $list = $db->findAll('1=1', '*', 'id asc');
 
+        if (empty($list)) {
+            return false;
+        }
+
+        foreach ($list as $game) {
+            $sql = "select a.goods_id,b.`discount` from (select * from goods where game_id = {$game['game_id']}) as a left join goods_price as b on a.goods_id = b.goods_id where b.`discount` > 0";
+            $result = $db->query($sql);
+            if (empty($result)) {
+                $data['is_discount'] = 0;
+                $where['game_id'] = $game['game_id'];
+            } else {
+                $data['is_discount'] = 1;
+                $where['game_id'] = $game['game_id'];
+            }
+            $db->update($data, $where);
+
+            echo "游戏资料id {$game['game_id']} 折扣数据更新成功 {$data['is_discount']} \r\n";
+        }
+
+        echo "任务处理完成 \r\n";
+    }
 }
