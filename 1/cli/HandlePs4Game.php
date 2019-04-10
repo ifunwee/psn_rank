@@ -754,7 +754,7 @@ class HandlePs4Game extends BaseService
         }
 
         foreach ($list as $game) {
-            $sql = "select a.goods_id,b.`discount` from (select * from goods where game_id = {$game['game_id']}) as a left join goods_price as b on a.goods_id = b.goods_id where b.`discount` > 0";
+            $sql = "select a.goods_id from (select * from goods where game_id = {$game['game_id']}) as a left join goods_price as b on a.goods_id = b.goods_id where b.`discount` > 0 || b.`plus_discount` > 0";
             $result = $db->query($sql);
             if (empty($result)) {
                 $data['is_discount'] = 0;
