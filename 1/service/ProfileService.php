@@ -12,7 +12,7 @@ class ProfileService extends BaseService
     {
         parent::__construct();
         //凌晨数据过期
-        $this->expire_time = strtotime(date("Y-m", strtotime("+1 week")));
+        $this->expire_time = strtotime(date("Y-m-d", strtotime("+1 week")));
         $this->cache_mode = c('cache_mode');
         $refresh && $this->cache_mode = false;
     }
@@ -161,6 +161,7 @@ class ProfileService extends BaseService
         $redis = r('psn_redis');
         $redis_key = redis_key('psn_game_progress', $psn_id, $game_id);
         $json = $redis->get($redis_key);
+
         if (!empty($json) && $this->cache_mode) {
             return json_decode($json, true);
         }
@@ -175,7 +176,7 @@ class ProfileService extends BaseService
             return $this->getError();
         }
 
-        $trophy_total_num = array_sum($data['defined_trophies']);
+        $trophy_total_num = !empty($data['defined_trophies']) ? array_sum($data['defined_trophies']) : 0;
         $trophy_earned_num = 0;
         $earned = $no_earned = $earned_date_arr = array();
         if (empty($data['trophy_groups'])) {
