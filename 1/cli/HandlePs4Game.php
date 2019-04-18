@@ -73,8 +73,12 @@ class HandlePs4Game extends BaseService
             if (empty($info['store_game_code'])) {
                 continue;
             }
+//            $info['store_game_code'] = 'HP0700-CUSA07431_00-0000000000000000';
             $url      = 'https://store.playstation.com/valkyrie-api/en/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
+            if (is_array($response)) {
+                var_dump($response);
+            }
             $data     = json_decode($response, true);
 
             if (empty($data['included'])) {
@@ -145,6 +149,10 @@ class HandlePs4Game extends BaseService
                 'language_support'   => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
             );
 
+            $media = array(
+                'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
+                'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
+            );
             if (!empty($info['cover_image'])) {
                 $info['cover_image'] = str_replace('https://store.playstation.com', '', $info['cover_image']);
             }
@@ -152,10 +160,14 @@ class HandlePs4Game extends BaseService
             $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
 
             if (empty($result)) {
+                $info['preview'] = $media['preview'];
+                $info['screenshots'] = $media['screenshots'];
                 $info['create_time'] = time();
                 $db->insert($info);
             } else {
                 $info['update_time'] = time();
+                !empty($media['preview']) && $info['preview'] = $media['preview'];
+                !empty($media['screenshots']) && $info['screenshots'] = $media['screenshots'];
                 $condition['id']     = $result['id'];
                 $db->update($info, $condition);
             }
@@ -622,12 +634,11 @@ class HandlePs4Game extends BaseService
             $temp['name_cn'] = $info['name_cn'];
             $data[] = $temp;
         }
-        var_dump(json_encode($data));exit;
     }
 
     public function game()
     {
-        $sql = "select *,sum(rating_total) as rating_total_all from (select * from goods where `status` > 0 and `id` > 2050  and `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
+        $sql = "select *,sum(rating_total) as rating_total_all, min(`release_date`) as min_release_date from (select * from goods where `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
         $db = pdo();
         $db->tableName = 'game';
         $list = $db->query($sql);
@@ -638,16 +649,9 @@ class HandlePs4Game extends BaseService
 
         foreach ($list as $goods)
         {
-            $game_id = $this->generateGameId();
-            if ($this->hasError()) {
-                log::e('generate_game_id_fial:' . json_encode($this->getError()));
-                return false;
-            }
-
             $goods['name'] = str_replace('™', '', $goods['name']);
             $goods['name'] = str_replace('®', '', $goods['name']);
             $game = array(
-                'game_id' => $game_id,
                 'np_title_id' => $goods['np_title_id'],
                 'origin_name' => $goods['name'],
                 'display_name' => $goods['name_cn'],
@@ -670,7 +674,25 @@ class HandlePs4Game extends BaseService
 
             $db->startTrans();
             try {
-                $db->insert($game);
+                $where['np_title_id'] = $goods['np_title_id'];
+                $info = $db->find($where);
+                if (empty($info)) {
+                    $game_id = $this->generateGameId();
+                    if ($this->hasError()) {
+                        log::e('generate_game_id_fial:' . json_encode($this->getError()));
+                        continue;
+                    }
+                    $game['game_id'] = $game_id;
+                    $db->insert($game);
+                } else {
+                    $game_id = $info['game_id'];
+                    $data['release_date'] = $goods['min_release_date'];
+                    $data['rating_total'] = $goods['rating_total_all'];
+                    $data['screenshots'] = $goods['screenshots'];
+                    $data['videos'] = $goods['preview'];
+
+                    $db->update($data, $where);
+                }
                 $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
                 $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
             } catch (Exception $e) {
@@ -769,5 +791,65 @@ class HandlePs4Game extends BaseService
         }
 
         echo "任务处理完成 \r\n";
+    }
+
+    public function media()
+    {
+        $db            = pdo();
+        $db->tableName = 'goods';
+        $last_id       = 0;
+        $list          = $db->findAll("id > {$last_id}", '*', 'id desc');
+        if (empty($list)) {
+            return false;
+        }
+
+        $service = s('Common');
+        $i       = 1;
+        foreach ($list as $info) {
+            if (empty($info['goods_id'])) {
+                continue;
+            }
+//            $info['goods_id'] = 'JP0006-CUSA07467_00-ASIA000000000001';
+            $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $info['goods_id'];
+            $response = $service->curl($url);
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                $url      = 'https://store.playstation.com/valkyrie-api/en/US/19/resolve/' . $info['goods_id'];
+                $response = $service->curl($url);
+                $data     = json_decode($response, true);
+                if (empty($data['included'])) {
+                    echo "商品 {$info['goods_id']} 媒体数据更新失败 \r\n";
+                    continue;
+                }
+            }
+
+            $item = $data['included'][0];
+            $attr = $item['attributes'];
+
+            $media = array(
+                'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
+                'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
+            );
+
+            if (!empty($info['preview']) && !empty($info['screenshots'])) {
+                continue;
+            }
+
+            $update = array();
+            empty($info['preview']) && $update['preview'] = $media['preview'];
+            empty($info['screenshots']) && $update['screenshots'] = $media['screenshots'];
+
+            if (empty($update)) {
+                continue;
+            }
+            $db->update($update, array('goods_id' => $info['goods_id']));
+
+            echo "商品 {$info['goods_id']} 媒体数据更新完成 $i";
+            echo "\r\n";
+            $i++;
+        }
+
+        $date = date('Y-m-d H:i:s', time());
+        echo "{$date} 脚本处理完毕";
     }
 }

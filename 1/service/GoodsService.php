@@ -53,7 +53,23 @@ class GoodsService extends BaseService
         if (empty($goods_id)) {
             return $this->setError('param_goods_id_is_empty');
         }
+        $origin_domain = c('playstation_media_origin_domain');
         $goods_info = $this->getGoodsInfo($goods_id);
+        if ($goods_info['screenshots']) {
+            foreach ($goods_info['screenshots'] as $key => &$value) {
+                $value['url'] = s('Common')->handlePsnImage($value['url'], 720, 480, 'media');
+            }
+        }
+        unset($value);
+
+        if ($goods_info['preview']) {
+            foreach ($goods_info['preview'] as $key => &$value) {
+                $value['url'] = $origin_domain.$value['url'];
+            }
+        }
+        unset($value);
+
+
         $info = array(
             'goods_id'         => $goods_info['goods_id'],
             'name'             => $goods_info['name' . $this->suffix] ? : '',
@@ -90,13 +106,13 @@ class GoodsService extends BaseService
             $info['is_follow'] = $is_follow;
         }
 
-        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480);
+        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480, 'image');
         $service = s('Game');
         $game_info = $service->getGameInfoFromDb($goods_info['game_id']);
         $game = array(
             'game_id' => $goods_info['game_id'],
             'display_name' => $game_info['display_name'] ? : '',
-            'cover_image' => $game_info['cover_image'] ? s('Common')->handlePsnImage($game_info['cover_image'], 480, 480) : '',
+            'cover_image' => $game_info['cover_image'] ? s('Common')->handlePsnImage($game_info['cover_image'], 480, 480, 'image') : '',
             'mc_score' => $game_info['mc_score'] ? : '0',
             'post_num' => $game_info['post_num'] ? : '0',
         );

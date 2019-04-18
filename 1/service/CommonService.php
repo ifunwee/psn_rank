@@ -169,10 +169,21 @@ class CommonService extends BaseService
         return $message;
     }
 
-    public function handlePsnImage($image, $width = 200, $height = 200)
+    public function handlePsnImage($image, $width = 200, $height = 200, $type = 'image')
     {
+        switch ($type) {
+            case 'image' :
+                $domain = c('playstation_image_domain');
+                break;
+            case 'media' :
+                $domain = c('playstation_media_domain');
+                break;
+            default :
+                return $image;
+        }
+
         if (!empty($image) && strpos($image, 'http') === false) {
-            $handle_image = c("playstation_image_domain") . $image . "?imageView2/0/w/{$width}/h/{$height}";
+            $handle_image = $domain . $image . "?imageView2/0/w/{$width}/h/{$height}";
         } else {
             $handle_image = $image;
         }
