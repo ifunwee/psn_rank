@@ -4,7 +4,7 @@ class ToolsService extends BaseService
     public $max_size = 10000000; //10M
     public $mimes = array();
     public $exts = array('gif', 'jpg', 'jpeg', 'bmp', 'png');
-    public $businiess_type = array('comment');
+    public $businiess_type = array('comment', 'banner');
 
     public function upload($files, $business_type, $bucket = 'app-image')
     {
