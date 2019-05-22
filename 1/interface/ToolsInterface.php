@@ -1,6 +1,7 @@
 <?php
 class ToolsInterface extends BaseInterface
 {
+
     public function upload()
     {
         $service      = s('Tools');
@@ -12,5 +13,11 @@ class ToolsInterface extends BaseInterface
         }
 
         $this->respondSuccess($result);
+    }
+
+    public function beforeInterface()
+    {
+        parent::beforeInterface();
+        s('Common')->allowCORS();
     }
 }

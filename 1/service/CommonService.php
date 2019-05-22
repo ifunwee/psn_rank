@@ -4,6 +4,7 @@ class CommonService extends BaseService
 {
     public $is_change_proxy = false;
     public $is_proxy = false;
+
     /**
      * curl请求
      * @param        $url
@@ -239,5 +240,17 @@ class CommonService extends BaseService
         }
         return $proxy;
 
+    }
+
+    public function allowCORS()
+    {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+        header('Access-Control-Allow-Methods: *');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 3600');
+        if($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+            exit;
+        }
     }
 }
