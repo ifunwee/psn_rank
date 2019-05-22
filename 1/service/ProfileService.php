@@ -145,6 +145,15 @@ class ProfileService extends BaseService
     public function getGameDetail($psn_id, $game_id)
     {
         $redis = r('psn_redis');
+        if (is_numeric($game_id)) {
+            $redis_key = redis_key('relation_game_trophy', $game_id);
+            $game_id = $redis->get($redis_key);
+        }
+
+        if (empty($game_id)) {
+            return array();
+        }
+
         $redis_key = redis_key('psn_game_detail', $game_id);
         $json = $redis->get($redis_key);
 
@@ -491,7 +500,7 @@ class ProfileService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'ai0rDZzKRLWbEYdqIjd3f5gibiGSJlufTRY3Al6ldchXMIXBNenyPbTX6811LIUw';
+        $npsso = 'Tkn1tgBVczR2rYf2Kt2ZW3Qg9FaHu6cB5JHtEiZTc25Ls15RZYv3d0OvIk1u1uwV';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
