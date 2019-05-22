@@ -95,13 +95,13 @@ class GoodsPriceService extends BaseService
             case 'best':
                 $where = "rating_total > 500 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and b.status > 0";
                 $sort = 'rating_score desc, a.id desc';
-                $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
+                $price_list = $this->getGoodsPriceListWithInfoFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'hot':
                 $where = "rating_total > 100 and (discount > 0 or plus_discount > 0) and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and b.status > 0";
                 $sort = 'rating_total desc, a.id desc';
-                $price_list = $this->getGoodsPriceListWithInfoFromDb($where, '', $sort, $page, $limit);
+                $price_list = $this->getGoodsPriceListWithInfoFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             default :
@@ -251,16 +251,26 @@ class GoodsPriceService extends BaseService
         $goods_id_arr = array_column($price_list, 'goods_id');
         $service = s('goods');
         $goods_info = $service->getGoodsInfo($goods_id_arr);
+
+        $game_id_arr = array_column($goods_info, 'game_id');
+        $service = s('game');
+        $field = array('game_id', 'mc_score', 'is_only', 'franchises', 'post_num');
+        $game_info = $service->getGameInfo($game_id_arr, $field);
+
+
         foreach ($price_list as $price) {
+            $game_id = $goods_info[$price['goods_id']]['game_id'];
             $info = array(
                 'goods_id' => $price['goods_id'],
+                'is_main' => $goods_info[$price['goods_id']]['is_main'],
                 'name' => $goods_info[$price['goods_id']]['name'.$this->suffix],
-                'cover_image' => $goods_info[$price['goods_id']]['cover_image'.$this->suffix],
-//                'genres' => $goods_info[$price['goods_id']]['genres'.$this->suffix],
+                'cover_image' => $goods_info[$price['goods_id']]['cover_image'],
+                'genres' => $goods_info[$price['goods_id']]['genres'.$this->suffix],
                 'language_support' => $goods_info[$price['goods_id']]['language_support'.$this->suffix],
-//                'file_size' => $goods_info[$price['goods_id']]['file_size'],
+                'file_size' => $goods_info[$price['goods_id']]['file_size'],
                 'rating_score' => $goods_info[$price['goods_id']]['rating_score'],
                 'rating_total' => $goods_info[$price['goods_id']]['rating_total'],
+                'release_date' => $goods_info[$price['goods_id']]['release_date'],
                 'status' => $goods_info[$price['goods_id']]['status'],
                 'price' => array(
                     'promo_date' => array(
@@ -284,6 +294,12 @@ class GoodsPriceService extends BaseService
                         'price_unit' => c('price_unit'),
                         'tag' => $price['plus_tag'],
                     ),
+                ),
+                'game' => array(
+                    'mc_score' => $game_info[$game_id]['mc_score'] ? : '0',
+                    'is_only' => $game_info[$game_id]['is_only'] ? : '',
+                    'franchises' => $game_info[$game_id]['franchises'] ? : '',
+                    'post_num' => $game_info[$game_id]['post_num'] ? : '0',
                 ),
             );
 
