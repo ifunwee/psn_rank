@@ -3,7 +3,7 @@ class DiscoveryInterface extends BaseInterface
 {
     public function getTab()
     {
-        $service = s('Goods');
+        $service = s('Game');
         $result = $service->getDiscoveryTab();
 
         if ($service->hasError()) {
@@ -18,7 +18,7 @@ class DiscoveryInterface extends BaseInterface
         $type = getParam('type');
         $page = getParam('page');
 
-        $service = s('Goods');
+        $service = s('Game');
         $result = $service->getDiscoveryList($type, $page);
 
         if ($service->hasError()) {

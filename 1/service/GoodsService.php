@@ -62,6 +62,7 @@ class GoodsService extends BaseService
         }
         unset($value);
 
+        //视频暂时不走cdn 拼上索尼原始域名
         if ($goods_info['preview']) {
             foreach ($goods_info['preview'] as $key => &$value) {
                 $value['url'] = $origin_domain.$value['url'];
@@ -72,8 +73,9 @@ class GoodsService extends BaseService
 
         $info = array(
             'goods_id'         => $goods_info['goods_id'],
+            'is_main'          => $goods_info['is_main'],
             'name'             => $goods_info['name' . $this->suffix] ? : '',
-            'cover_image'      => $goods_info['cover_image' . $this->suffix] ? : '',
+            'cover_image'      => $goods_info['cover_image'] ? : '',
             'description'      => $goods_info['description' . $this->suffix] ? : '',
             'rating_score'     => $goods_info['rating_score'],
             'rating_total'     => $goods_info['rating_total'],
@@ -106,22 +108,66 @@ class GoodsService extends BaseService
             $info['is_follow'] = $is_follow;
         }
 
-        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480, 'image');
+        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480);
+
+        //获取游戏资料
         $service = s('Game');
-        $game_info = $service->getGameInfoFromDb($goods_info['game_id']);
+        $game_info = $service->getGameInfo($goods_info['game_id']);
         $game = array(
             'game_id' => $goods_info['game_id'],
+            'main_goods_id' => $game_info['main_goods_id'] ? : '',
             'display_name' => $game_info['display_name'] ? : '',
-            'cover_image' => $game_info['cover_image'] ? s('Common')->handlePsnImage($game_info['cover_image'], 480, 480, 'image') : '',
-            'mc_score' => $game_info['mc_score'] ? : '0',
+            'introduction' => $game_info['introduction'] ? : '',
+            'cover_image' => s('Common')->handlePsnImage($info['cover_image'], 480, 480),
+            'developer' => $game_info['developer'] ? : '',
+            'publisher' => $game_info['publisher'] ? : '',
+            'franchises' => $game_info['franchises'] ? : '',
+            'is_only' => $game_info['is_only'] ? : '',
+            'release_date' => $game_info['release_date'] ? : '',
+            'play_time' => $game_info['play_time'] ? : '',
+            'difficulty' => $game_info['difficulty'] ? : '',
+            'local_players' => $game_info['local_players'] ? : '',
+            'online_players' => $game_info['online_players'] ? : '',
+            'is_chinese_support' => $game_info['is_chinese_support'] ? : '',
+            'mc_score' => $game_info['mc_score'] ? : '',
             'post_num' => $game_info['post_num'] ? : '0',
         );
 
         $info['game'] = $game;
+
+        //获取相关游戏商品
+        $relation_goods = $this->getRelationGoods($goods_id, $goods_info['game_id']);
+        if ($this->hasError()) {
+            $relation_goods = array();
+        }
+        $info['relation_goods'] = $relation_goods;
+
+        //获取奖杯数据
+        if (!empty($game_info['np_communication_id'])) {
+            $service = s('Profile');
+            $game_trophy = $service->getTrophyInfo($game_info['np_communication_id'], 0);
+            $bronze = $game_trophy['game_info']['defined_trophies']['bronze'];
+            $silver = $game_trophy['game_info']['defined_trophies']['silver'];
+            $gold = $game_trophy['game_info']['defined_trophies']['gold'];
+            $platinum = $game_trophy['game_info']['defined_trophies']['platinum'];
+            $trophy_icon = $game_trophy['trophy_info']['trophy_icon_url'];
+            $trophy_difficulty = $game_trophy['trophy_info']['trophy_earned_rate'];
+            $trophy = array(
+                'total' => strval($bronze + $silver + $gold + $platinum),
+                'bronze' => strval($bronze),
+                'silver' => strval($silver),
+                'gold' => strval($gold),
+                'platinum' => strval($platinum),
+                'trophy_icon' => strval($trophy_icon),
+                'trophy_difficulty' => strval($trophy_difficulty),
+            );
+            $info['trophy'] = $trophy;
+        }
+
         return $info;
     }
 
-    public function getGoodsInfo($goods_id, $field = array())
+    public function getGoodsInfo($goods_id, $field = '')
     {
         if (empty($goods_id)) {
             return $this->setError('param_goods_id_is_empty');
@@ -132,9 +178,13 @@ class GoodsService extends BaseService
                 $goods['preview'] = $goods['preview'] ? json_decode($goods['preview'], true) : '';
                 $goods['screenshots'] = $goods['screenshots'] ? json_decode($goods['screenshots'], true) : '';
                 $goods['file_size'] = $goods['file_size'] ? $goods['file_size'].$goods['file_size_unit'] : '';
-                $genres_arr = $goods['genres'] ? explode(',', $goods['genres']) : '';
-                foreach ($genres_arr as $genre) {
-                    $goods['genres_cn'][] = $this->genres[$genre];
+                $genres_arr = $goods['genres'] ? explode(',', $goods['genres']) : $goods['genres'] = array();
+                if (!empty($genres_arr)) {
+                    foreach ($genres_arr as $item) {
+                        $goods['genres_cn'][] = $this->genres[$item];
+                    }
+                } else {
+                    $goods['genres_cn'] = array();
                 }
             }
             unset($goods);
@@ -142,11 +192,13 @@ class GoodsService extends BaseService
             $info['preview'] = $info['preview'] ? json_decode($info['preview'], true) : '';
             $info['screenshots'] = $info['screenshots'] ? json_decode($info['screenshots'], true) : '';
             $info['file_size'] = $info['file_size'] ? $info['file_size'].$info['file_size_unit'] : '';
-            $genres_arr = $info['genres'] ? explode(',', $info['genres']) : '';
+            $genres_arr = $info['genres'] ? explode(',', $info['genres']) : $info['genres'] = array();
             if (!empty($genres_arr)) {
-                foreach ($genres_arr as $genre) {
-                    $info['genres_cn'][] = $this->genres[$genre];
+                foreach ($genres_arr as $item) {
+                    $info['genres_cn'][] = $this->genres[$item];
                 }
+            } else {
+                $info['genres_cn'] = array();
             }
         }
 
@@ -259,7 +311,7 @@ class GoodsService extends BaseService
         return $list;
     }
 
-    private function completeGoodsPrice($goods_list)
+    public function completeGoodsPrice($goods_list)
     {
         $list = array();
         if (empty($goods_list)) {
@@ -281,75 +333,35 @@ class GoodsService extends BaseService
                 'status' => $goods['status'],
                 'price' => $goods_price[$goods['goods_id']],
             );
+
+            $info['cover_image'] && $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
             $list[] = $info;
         }
 
         return $list;
     }
 
-    public function getDiscoveryTab()
+    public function getRelationGoods($goods_id, $game_id)
     {
-        $data = array(
-            array(
-                'title' => '最新游戏',
-                'type' => 'latest',
-            ),
-            array(
-                'title' => '即将发售',
-                'type' => 'coming',
-            ),
-            array(
-                'title' => '热门游戏',
-                'type' => 'hot',
-            ),
-            array(
-                'title' => '最高评分',
-                'type' => 'best',
-            ),
-        );
-
-        return $data;
-    }
-
-    public function getDiscoveryList($type, $page = 1, $limit = 20)
-    {
-        if (empty($type)) {
-            return $this->setError('param_type_is_empty');
+        if (empty($goods_id)) {
+            return $this->setError('param_goods_id_is_empty');
         }
 
-        if (!in_array($type, $this->discovery_type)) {
-            return $this->setError('invalid_discovery_type');
+        if (empty($game_id)) {
+            return $this->setError('param_game_id_is_empty');
         }
 
-        switch ($type) {
-            case 'latest':
-                $where = "release_date <= UNIX_TIMESTAMP() and status <> 0";
-                $sort = 'release_date desc, id desc';
-                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
+        $db = pdo();
+        $sql = "select * from goods where game_id = {$game_id} and goods_id <> '{$goods_id}' and status = 1";
+        $goods_list = $db->query($sql);
 
-                $list = $this->completeGoodsPrice($goods_list);
-                break;
-            case 'coming':
-                $where = "release_date > UNIX_TIMESTAMP() and status <> 0";
-                $sort = 'release_date asc, id desc';
-                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($goods_list);
-                break;
-            case 'best':
-                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status <> 0";
-                $sort = 'rating_score desc, id desc';
-                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($goods_list);
-                break;
-            case 'hot':
-                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status <> 0";
-                $sort = 'rating_total desc, id desc';
-                $goods_list = $this->getGoodsListFromDb($where, '', $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($goods_list);
-                break;
-            default :
-                return $this->setError('invalid_type');
+        if (empty($goods_list)) {
+            return array();
         }
+
+        $list = $this->completeGoodsPrice($goods_list);
         return $list;
     }
+
+
 }
