@@ -2,6 +2,8 @@
 
 class CommonService extends BaseService
 {
+    public $is_change_proxy = false;
+    public $is_proxy = false;
     /**
      * curl请求
      * @param        $url
@@ -25,13 +27,27 @@ class CommonService extends BaseService
         if (!empty($cookie)) {
             curl_setopt($ch, CURLOPT_COOKIE, $cookie);
         }
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+//        curl_setopt($ch, CURLOPT_SSLVERSION, 2);
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 //        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 //        curl_setopt($ch, CURLOPT_MAXREDIRS, 10);//设置请求最多重定向的次数
 
-//        curl_setopt($ch, CURLOPT_PROXY, "192.168.1.110"); //代理服务器地址
-//        curl_setopt($ch, CURLOPT_PROXYPORT, 9999); //代理服务器端口
+        if (!empty($this->is_proxy)) {
+            $proxy = $this->getProxy();
+//            var_dump("{$proxy['ip']}:{$proxy['port']}");
+            if ($this->hasError()) {
+                return $this->setError($this->getError());
+            }
+            curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, false);
+//            curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC); //代理认证模式
+
+            curl_setopt($ch, CURLOPT_PROXY, $proxy['ip']); //代理服务器地址
+            curl_setopt($ch, CURLOPT_PROXYPORT, $proxy['port']); //代理服务器端口
+            curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP); //使用http代理模式
+        }
+
         $output = curl_exec($ch);
 
 //                $curl_info = curl_getinfo($ch);
@@ -42,6 +58,7 @@ class CommonService extends BaseService
 
         if ($error) {
             Log::e("request_curl_exception code:{$errno} msg:{$error} url:{$url} debug_info:" . var_export($curl_info, true));
+//            echo "request_curl_exception code:{$errno} msg:{$error} url:{$url} debug_info:" . var_export($curl_info, true);
             curl_close($ch);
             return $this->setError($errno, $error);
         }
@@ -171,6 +188,10 @@ class CommonService extends BaseService
 
     public function handlePsnImage($image, $width = 200, $height = 200, $type = 'image')
     {
+        if (empty($image)) {
+            return '';
+        }
+
         switch ($type) {
             case 'image' :
                 $domain = c('playstation_image_domain');
@@ -189,5 +210,34 @@ class CommonService extends BaseService
         }
 
         return $handle_image;
+    }
+
+    public function getProxy()
+    {
+        $redis = r('psn_redis');
+        $redis_key = "proxy:{$GLOBALS['X_G']['soa']['distinctRequestId']}";
+        $proxy = $redis->hGetAll($redis_key);
+        if (empty($proxy) || $this->is_change_proxy) {
+//            $request = 'https://proxy.357.im/api/proxies/premium?protocol=http';
+//            $request = 'https://proxy.357.im/api/proxies/stable?protocol=http';
+            $request = 'https://proxy.357.im/api/proxies/common?protocol=http';
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_URL, $request);
+            $response =  curl_exec($ch);
+            curl_close($ch);
+
+            $response = json_decode($response, true);
+            $proxy = $response['data'];
+
+            if (empty($proxy['ip'])) {
+                return $this->setError('get_proxy_ip_fail');
+            }
+            $redis->hMset($redis_key, $proxy);
+            $redis->expire($redis_key, 86400);
+            $this->is_change_proxy = false;
+        }
+        return $proxy;
+
     }
 }
