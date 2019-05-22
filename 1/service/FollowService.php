@@ -40,10 +40,16 @@ class FollowService extends BaseService
         switch ($action) {
             case 'follow' :
                 $this->operateFromDb($open_id, $goods_id, 1);
+                if ($this->hasError()) {
+                    return $this->setError($this->getError());
+                }
                 $this->followToCache($open_id, $goods_id);
                 break;
             case 'unfollow':
                 $this->operateFromDb($open_id, $goods_id, 0);
+                if ($this->hasError()) {
+                    return $this->setError($this->getError());
+                }
                 $this->unfollowFromCache($open_id, $goods_id);
                 break;
             default:
