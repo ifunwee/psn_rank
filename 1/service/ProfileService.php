@@ -267,6 +267,14 @@ class ProfileService extends BaseService
 
     public function getUserGameInfo($psn_id, $game_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_is_empty');
+        }
+
+        if (empty($game_id)) {
+            return $this->setError('param_game_id_is_empty');
+        }
+
         $redis = r('psn_redis');
         $redis_key = redis_key('user_game_info', $psn_id, $game_id);
         $json = $redis->get($redis_key);
@@ -385,12 +393,10 @@ class ProfileService extends BaseService
     {
         $game_info = $this->getGameOverviewFromCache($game_id);
         $trophy_info = $this->getTrophyInfoFromCache($game_id, $trophy_id);
-        if (empty($game_info) || empty($trophy_info)) {
-            return $this->setError('game_id_or_trophy_id_is_invalid', '非法的参数');
-        }
 
-        $result['game_info'] = $game_info;
-        $result['trophy_info'] = $trophy_info;
+        $result['game_info'] = $game_info ? : '';
+        $result['trophy_info'] = $trophy_info ? : '';
+
         return $result;
     }
 

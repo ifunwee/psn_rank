@@ -138,9 +138,19 @@ class GoodsService extends BaseService
         //获取相关游戏商品
         $relation_goods = $this->getRelationGoods($goods_id, $goods_info['game_id']);
         if ($this->hasError()) {
+            $this->flushError();
             $relation_goods = array();
         }
         $info['relation_goods'] = $relation_goods;
+
+        //获取相同开发商游戏
+        $same_developer_goods = $this->getSameDeveloperGoods($game['game_id'], $game['developer']);
+        if ($this->hasError()) {
+            $this->flushError();
+            $same_developer_goods = array();
+        }
+        $info['same_developer_goods'] = $same_developer_goods;
+
 
         //获取奖杯数据
         if (!empty($game_info['np_communication_id'])) {
@@ -150,8 +160,8 @@ class GoodsService extends BaseService
             $silver = $game_trophy['game_info']['defined_trophies']['silver'];
             $gold = $game_trophy['game_info']['defined_trophies']['gold'];
             $platinum = $game_trophy['game_info']['defined_trophies']['platinum'];
-            $trophy_icon = $game_trophy['trophy_info']['trophy_icon_url'];
-            $trophy_difficulty = $game_trophy['trophy_info']['trophy_earned_rate'];
+            $trophy_icon = $game_trophy['trophy_info']['trophy_icon_url'] ? : $game_trophy['game_info']['trophy_title_icon_url'];
+            $trophy_difficulty = $game_trophy['trophy_info']['trophy_earned_rate'] ? : '';
             $trophy = array(
                 'total' => strval($bronze + $silver + $gold + $platinum),
                 'bronze' => strval($bronze),
@@ -360,6 +370,37 @@ class GoodsService extends BaseService
         }
 
         $list = $this->completeGoodsPrice($goods_list);
+        return $list;
+    }
+
+    public function getSameDeveloperGoods($game_id, $developer)
+    {
+        if (empty($game_id)) {
+            return $this->setError('param_game_id_is_empty');
+        }
+
+        if (empty($developer)) {
+            return $this->setError('param_developer_is_empty');
+        }
+
+
+        $db = pdo();
+        $sql = "select * from game where developer = '{$developer}' and game_id <> {$game_id} order by rating_total desc limit 6 ";
+        $game_list = $db->query($sql);
+
+        if (empty($game_list)) {
+            return array();
+        }
+
+        $list = array();
+        foreach ($game_list as $game) {
+            $item['goods_id'] = $game['main_goods_id'];
+            $item['cover_image'] = s('Common')->handlePsnImage($game['cover_image']);
+            $item['name'] = $game['display_name'];
+
+            $list[] = $item;
+        }
+
         return $list;
     }
 

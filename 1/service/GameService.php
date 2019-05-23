@@ -110,8 +110,6 @@ class GameService extends GoodsService
                 ),
             );
 
-
-
             $info['cover_image'] && $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
 
             $list[] = $info;
@@ -183,6 +181,20 @@ class GameService extends GoodsService
             default :
                 return $this->setError('invalid_type');
         }
+        return $list;
+    }
+
+    public function search($name, $page = 1)
+    {
+        if (empty($name)) {
+            return $this->setError('param_name_is_empty', '请填写游戏名称');
+        }
+
+        $where = "(origin_name LIKE '%{$name}%' OR display_name LIKE '%{$name}%')";
+        $sort = "rating_total DESC";
+        $game_list = $this->getGameListFromDb($where, array(), $sort, $page);
+        $list = $this->completeGoodsPrice($game_list);
+
         return $list;
     }
 }
