@@ -73,22 +73,26 @@ class HandlePs4Game extends BaseService
             if (empty($info['store_game_code'])) {
                 continue;
             }
-//            $info['store_game_code'] = 'HP0700-CUSA07431_00-0000000000000000';
+
             $url      = 'https://store.playstation.com/valkyrie-api/en/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
-            if (is_array($response)) {
-                var_dump($response);
-            }
-            $data     = json_decode($response, true);
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
 
-            if (empty($data['included'])) {
-                $url      = 'https://store.playstation.com/valkyrie-api/en/HK/19/resolve/' . $info['store_game_code'];
+                $url = 'https://store.playstation.com/valkyrie-api/en/HK/19/resolve/' . $info['store_game_code'];
                 $response = $service->curl($url);
-                $data     = json_decode($response, true);
-                if (empty($data['included'])) {
-                    echo "商品 {$info['store_game_code']} 获取数据失败 \r\n";
+                if ($service->hasError()) {
+                    echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                    $service->flushError();
                     continue;
                 }
+            }
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                echo "商品 {$info['store_game_code']} 获取数据失败 \r\n";
+                var_dump($data);
+                continue;
             }
 
             $item = $data['included'][0];
@@ -207,17 +211,25 @@ class HandlePs4Game extends BaseService
             $url      = 'https://store.playstation.com/valkyrie-api/en/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
 
-            $data = json_decode($response, true);
-            if (empty($data['included'])) {
-                $url      = 'https://store.playstation.com/valkyrie-api/en/HK/19/resolve/' . $info['store_game_code'];
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+
+                $url = 'https://store.playstation.com/valkyrie-api/en/HK/19/resolve/' . $info['store_game_code'];
                 $response = $service->curl($url);
-                $data     = json_decode($response, true);
-                if (empty($data['included'])) {
-                    echo "商品 {$info['store_game_code']} 更新价格失败 \r\n";
-                    $fail_list_key = redis_key('price_update_fail_list');
-                    $redis->lpush($fail_list_key, $info['store_game_code']);
+                if ($service->hasError()) {
+                    echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                    $service->flushError();
                     continue;
                 }
+            }
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                echo "获取商品 {$info['store_game_code']} 数据失败 \r\n";
+                var_dump($data);
+                $fail_list_key = redis_key('price_update_fail_list');
+                $redis->lpush($fail_list_key, $info['store_game_code']);
+                continue;
             }
 
             $result = $this->handleData($data, $info['store_game_code']);
@@ -256,17 +268,26 @@ class HandlePs4Game extends BaseService
             if (empty($info['store_game_code'])) {
                 continue;
             }
+
             $url      = 'https://store.playstation.com/valkyrie-api/zh/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
-            $data = json_decode($response, true);
-            if (empty($data['included'])) {
-                $url      = 'https://store.playstation.com/valkyrie-api/zh/HK/19/resolve/' . $info['store_game_code'];
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+
+                $url = 'https://store.playstation.com/valkyrie-api/zh/HK/19/resolve/' . $info['store_game_code'];
                 $response = $service->curl($url);
-                $data     = json_decode($response, true);
-                if (empty($data['included'])) {
-                    echo "商品 {$info['store_game_code']} 中文更新失败 \r\n";
+                if ($service->hasError()) {
+                    echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                    $service->flushError();
                     continue;
                 }
+            }
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                echo "商品 {$info['store_game_code']} 获取数据失败 \r\n";
+                var_dump($data);
+                continue;
             }
 
             $item = $data['included'][0];
@@ -312,6 +333,71 @@ class HandlePs4Game extends BaseService
             $db->update($info, $where);
 
             echo "商品 {$item['id']} 中文字段更新完成 $i";
+            echo "\r\n";
+            $i++;
+        }
+
+        $date = date('Y-m-d H:i:s', time());
+        echo "{$date} 脚本处理完毕";
+    }
+
+    /**
+     * 标记主商品
+     */
+    public function main()
+    {
+        $db            = pdo();
+        $db->tableName = 'goods';
+        $sql = "select np_title_id from goods where parent_np_title_id = '' or np_title_id = parent_np_title_id group by np_title_id order by id desc";
+        $list = $db->query($sql);
+
+        if (empty($list)) {
+            return false;
+        }
+
+        $service = s('Common');
+        $i       = 1;
+        foreach ($list as $info) {
+            if (empty($info['np_title_id'])) {
+                continue;
+            }
+            $url      = 'https://store.playstation.com/valkyrie-api/zh/hk/19/resolve/' . $info['np_title_id'];
+            $response = $service->curl($url);
+            $data = json_decode($response, true);
+            if (empty($data['data']['relationships']['children']['data'])) {
+                $url      = 'https://store.playstation.com/valkyrie-api/zh/HK/19/resolve/' . $info['np_title_id'];
+                $response = $service->curl($url);
+                if ($service->hasError()) {
+                    echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                    $service->flushError();
+                    continue;
+                }
+
+                $data     = json_decode($response, true);
+                if (empty($data['data']['relationships']['children']['data'])) {
+                    echo "根据 {$info['np_title_id']} 获取主商品数据失败 \r\n";
+                    continue;
+                }
+            }
+
+            $item = $data['data']['relationships']['children']['data'][0];
+            if ($item['type'] == 'game') {
+                $main_goods_id = $item['id'];
+            }
+
+            if (empty($main_goods_id)) {
+                echo "获取到的主商品id为空 \r\n";
+                continue;
+            }
+
+
+            $where['goods_id'] = $main_goods_id;
+            $where['np_title_id'] = $info['np_title_id'];
+            $update['is_main'] = 1;
+
+            $db->update($update, $where);
+
+            echo "商品 {$main_goods_id} 更新为主商品 $i";
             echo "\r\n";
             $i++;
         }
@@ -547,7 +633,7 @@ class HandlePs4Game extends BaseService
                 }
 
                 $content['touser'] = $follow_info['open_id'];
-                $content['template_id'] = 'UXUVm5TNEs3KQD9ei7aBI_QkaVSTizW15vVmOeaBvAM';
+                $content['template_id'] = 'BOQSUtVluGMal68HJAh6XZlO2X7kxg8_V8WCo_VGCkA';
                 $content['page'] = 'pages/detail/detail?goods_id=' . $info['goods_id'];
                 $form_id = $service->getFormId($follow_info['open_id']);
                 if ($service->hasError()) {
@@ -558,21 +644,17 @@ class HandlePs4Game extends BaseService
                 $content['form_id'] = $form_id['form_id'];
                 $start_date = date('Y-m-d', $info['start_date']);
                 $end_date = $info['end_date'] ? date('Y-m-d', $info['end_date']) : '未知期限';
+                $plus_origin_price = $info['plus_origin_price']/100;
+                $plus_price = $info['plus_price']/100;
                 $content['data'] = array(
                     'keyword1' => array(
-                        'value' => $goods_info_arr[$info['goods_id']]['name_cn'],
+                        'value' => "您关注的游戏 《{$goods_info_arr[$info['goods_id']]['name_cn']}》价格有变化",
                     ),
                     'keyword2' => array(
-                        'value' => "{$start_date} 至 {$end_date}",
+                        'value' => "优惠截止至 {$end_date}",
                     ),
                     'keyword3' => array(
-                        'value' => $info['plus_origin_price']/100 . '港币',
-                    ),
-                    'keyword4' => array(
-                        'value' => $info['plus_price']/100 . '港币',
-                    ),
-                    'keyword5' => array(
-                        'value' => $info['plus_tag'] > 0 ? $info['plus_tag'] == 1 ? '历史新低': '持平史低' : '无',
+                        'value' => "折扣力度: {$info['plus_discount']}%  {$plus_origin_price}港币 -> {$plus_price}港币" ,
                     ),
                 );
                 $json = json_encode($content);
@@ -608,7 +690,7 @@ class HandlePs4Game extends BaseService
                 continue;
             }
             $where['goods_id'] = $info['goods_id'];
-            $data['name'] = $info['name'];
+//            $data['name'] = $info['name'];
             $data['name_cn'] = $info['name_cn'];
             $data['is_final'] = 1;
             $data['update_time'] = time();
@@ -638,7 +720,7 @@ class HandlePs4Game extends BaseService
 
     public function game()
     {
-        $sql = "select *,sum(rating_total) as rating_total_all, min(`release_date`) as min_release_date from (select * from goods where `parent_np_title_id` = '' order by rating_total desc) as t group by np_title_id order by id asc";
+        $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where `parent_np_title_id` = '' or `parent_np_title_id` = `np_title_id` order by is_main desc, rating_total desc) as t group by np_title_id order by id desc ";
         $db = pdo();
         $db->tableName = 'game';
         $list = $db->query($sql);
@@ -649,10 +731,11 @@ class HandlePs4Game extends BaseService
 
         foreach ($list as $goods)
         {
-            $goods['name'] = str_replace('™', '', $goods['name']);
-            $goods['name'] = str_replace('®', '', $goods['name']);
+//            $goods['name'] = str_replace('™', '', $goods['name']);
+//            $goods['name'] = str_replace('®', '', $goods['name']);
             $game = array(
                 'np_title_id' => $goods['np_title_id'],
+                'main_goods_id' => $goods['goods_id'],
                 'origin_name' => $goods['name'],
                 'display_name' => $goods['name_cn'],
                 'other_name' => '',
@@ -662,13 +745,15 @@ class HandlePs4Game extends BaseService
                 'publisher' => $goods['publisher'],
                 'franchises' => '',
                 'genres' => $goods['genres'],
-                'release_date' => $goods['release_date'],
+                'release_date' => $goods['min_release_date'],
                 'description' => $goods['description_cn'],
                 'language_support' => $goods['language_support_cn'],
                 'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
                 'screenshots' => $goods['screenshots'],
                 'videos' => $goods['preview'],
-                'rating_total' => $goods['rating_total_all'],
+                'rating_total' => $goods['rating_total'],
+                'rating_score' => $goods['rating_score'],
+                'status' => $goods['status'],
                 'create_time' => time(),
             );
 
@@ -686,10 +771,17 @@ class HandlePs4Game extends BaseService
                     $db->insert($game);
                 } else {
                     $game_id = $info['game_id'];
-                    $data['release_date'] = $goods['min_release_date'];
-                    $data['rating_total'] = $goods['rating_total_all'];
-                    $data['screenshots'] = $goods['screenshots'];
-                    $data['videos'] = $goods['preview'];
+                    $data['main_goods_id'] = $game['main_goods_id'];
+                    $data['origin_name'] = $game['origin_name'];
+                    $data['display_name'] = $game['display_name'];
+                    $data['cover_image'] = $game['cover_image'];
+                    $data['language_support'] = $game['language_support'];
+                    $data['is_chinese_support'] = $game['is_chinese_support'];
+                    $data['rating_total'] = $game['rating_total'];
+                    $data['rating_score'] = $game['rating_score'];
+                    $data['screenshots'] = $game['screenshots'];
+                    $data['videos'] = $game['videos'];
+                    $data['status'] = $game['status'];
 
                     $db->update($data, $where);
                 }
@@ -802,14 +894,12 @@ class HandlePs4Game extends BaseService
         if (empty($list)) {
             return false;
         }
-
         $service = s('Common');
         $i       = 1;
         foreach ($list as $info) {
             if (empty($info['goods_id'])) {
                 continue;
             }
-//            $info['goods_id'] = 'JP0006-CUSA07467_00-ASIA000000000001';
             $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $info['goods_id'];
             $response = $service->curl($url);
             $data = json_decode($response, true);
@@ -818,7 +908,7 @@ class HandlePs4Game extends BaseService
                 $response = $service->curl($url);
                 $data     = json_decode($response, true);
                 if (empty($data['included'])) {
-                    echo "商品 {$info['goods_id']} 媒体数据更新失败 \r\n";
+                    echo "商品 {$info['goods_id']} 远端媒体数据更新失败 \r\n";
                     continue;
                 }
             }
@@ -832,6 +922,7 @@ class HandlePs4Game extends BaseService
             );
 
             if (!empty($info['preview']) && !empty($info['screenshots'])) {
+                echo "商品 {$info['goods_id']} 无需更新数据 \r\n";
                 continue;
             }
 
@@ -840,12 +931,12 @@ class HandlePs4Game extends BaseService
             empty($info['screenshots']) && $update['screenshots'] = $media['screenshots'];
 
             if (empty($update)) {
+                echo "商品 {$info['goods_id']} 无可用数据更新 \r\n";
                 continue;
             }
             $db->update($update, array('goods_id' => $info['goods_id']));
 
-            echo "商品 {$info['goods_id']} 媒体数据更新完成 $i";
-            echo "\r\n";
+            echo "商品 {$info['goods_id']} 媒体数据更新完成 $i \r\n";
             $i++;
         }
 

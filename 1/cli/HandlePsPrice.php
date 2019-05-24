@@ -9,10 +9,34 @@ class HandlePsPrice
         $host = 'https://psprices.com';
         $redis = r('psn_redis');
         $item_url_key = 'ps_price_item_url';
+        $item_url_quene_key = 'ps_price_item_url_quene';
         $page = 1;
+        $list = $redis->zRange($item_url_key, 0, -1);
+        $redis->delete($item_url_quene_key);
+        foreach ($list as $item) {
+            $redis->lpush($item_url_quene_key, $item);
+        }
+        exit;
         while (true) {
             $url = "https://psprices.com/region-hk/games/?platform=PS4&page={$page}";
-            $response = $service->curl($url);
+            $header = array(
+            ':method: GET',
+            ':authority: psprices.com',
+            ':scheme: https',
+            ':path: /region-hk/games/?sort=name&platform=PS4&page=2',
+            'cache-control: max-age=0',
+            'upgrade-insecure-requests: 1',
+            'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36',
+            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+            'referer: https://psprices.com/region-hk/games/?sort=name&platform=PS4',
+            'accept-language: zh-CN,zh;q=0.9',
+            'cookie: cf_clearance=9b624d0a6ecae9f3158798bb105c9c43087b8538-1557502917-3600-250',
+            'Pragma: no-cache',
+            'content-type:charset=UTF-8',
+            'Cache-Control: no-cache',
+            );
+
+            $response = $service->curl($url, $header);
             //<a href="/region-hk/game/1193368/kill-the-bad-guy" class="content__game_card__cover">
             $preg = '/<a href=\"(.*?)\" class=\"content__game_card__cover\">/i';
             preg_match_all($preg, $response, $matches);
@@ -23,6 +47,7 @@ class HandlePsPrice
             }
             foreach ($matches[1] as $item) {
                 $url = $host . $item;
+//                var_dump($url);exit;
                 $redis->zAdd($item_url_key, time(), $url);
             }
 
@@ -44,18 +69,35 @@ class HandlePsPrice
         $i = 1;
         foreach ($list as $url) {
 //            $url = 'https://psprices.com/region-hk/game/1005013/horizon-zero-dawntm';
-            $response = $service->curl($url);
-//            var_dump($response);exit;
-            $preg = '/href=\"https:\/\/store.playstation.com\/en-hk\/product\/(.*?)\"(.*?)<strong>Lowest price<\/strong>: (.*?),(.*?)<strong>PS\+<\/strong>: (.*?)<\/div>/is';
+            $header = array(
+                ':method: GET',
+                ':authority: psprices.com',
+                ':scheme: https',
+                ':path: /region-hk/game/2566697/grip',
+                'cache-control: max-age=0',
+                'upgrade-insecure-requests: 1',
+                'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36',
+                'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+                'referer: https://psprices.com/region-hk/games/?platform=PS4',
+                'cookie:  cf_clearance=92822a89ad3699b2fc231a24d5ca7316b6765c7c-1557421043-3600-250;',
+                'Pragma: no-cache',
+                'content-type:charset=UTF-8',
+                'Cache-Control: no-cache',
+            );
+            $url = 'https://psprices.com/region-hk/game/2566697/grip';
+            $response = $service->curl($url, $header);
+            $response = preg_replace('/(?<=\>)[\s]+(?=\<)/i', '', $response);
+            $response = preg_replace('/\r|\n|\r\n|\t|/i', '', $response);
+
+            $preg = '/href=\"https:\/\/store.playstation.com\/en-hk\/product\/(.*?)\"(.*?)Lowest price: <strong>(.*?)<\/strong>,(.*?)PS\+: <strong>(.*?)<\/strong>/is';
             preg_match($preg, $response, $match);
             $goods_id = trim($match[1]);
             $lowest_price = trim($match[3]);
             $plus_lowest_price = trim($match[5]);
-
             if (empty($goods_id)) {
                 continue;
             }
-
+var_dump($goods_id,$lowest_price,$plus_lowest_price);exit;
             if ($lowest_price == 'Free') {
                 $lowest_price = 0;
             } else {
@@ -91,67 +133,93 @@ class HandlePsPrice
 
     public function history()
     {
+        /** @var  $service CommonService*/
         $service = s('Common');
+//        $service->is_proxy = true;
         $db = pdo();
         $redis = r('psn_redis');
         $item_url_key = 'ps_price_item_url';
+        $item_url_quene_key = 'ps_price_item_url_quene';
         $list = $redis->zrange($item_url_key, 0, -1);
+        $header = array(
+            ':method: GET',
+            ':authority: psprices.com',
+            ':scheme: https',
+            ':path: /region-hk/game/2566697/grip',
+            'cache-control: max-age=0',
+            'upgrade-insecure-requests: 1',
+            'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36',
+            'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+            'referer: https://psprices.com/region-hk/games/?platform=PS4',
+            'cookie: cf_clearance=ec356f4048544fc44ac64c4ef65590fa8a778cad-1557577405-3600-250',
+            'Pragma: no-cache',
+            'content-type:charset=UTF-8',
+            'Cache-Control: no-cache',
+        );
         $i = 1;
-        foreach ($list as $url) {
+        while ($redis->lLen($item_url_quene_key) > 0) {
+            $url = $redis->rPop($item_url_quene_key);
             $data = array();
-//            $url = 'https://psprices.com/region-hk/game/1835423/horizon-zero-dawntm-complete-edition';
-            $response = $service->curl($url);
-            $preg = '/href=\"https:\/\/store.playstation.com\/en-hk\/product\/(.*?)\"/is';
+//            $url = 'https://psprices.com/region-hk/game/2450757/divinity-original-sin-2-definitive-edition';
+            $response = $service->curl($url, $header);
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+                $service->is_change_proxy = true;
+                $redis->rPush($item_url_quene_key, $url);
+                continue;
+            }
+//            https://store.playstation.com/store/api/chihiro/00_09_000/container/HK/en/19/JP0700-CUSA01016_00-ASIA000000000000/image
+            $preg = '/data-src=\"https:\/\/store.playstation.com\/store\/api\/chihiro\/00_09_000\/container\/HK\/en\/19\/(.*?)\/image/is';
             preg_match($preg, $response, $match);
             $goods_id = trim($match[1]);
+            unset($match);
             if (empty($goods_id)) {
                 echo "获取商品id失败 url:{$url} \r\n";
+                $service->is_change_proxy = true;
+                $redis->lPush($item_url_quene_key, $url);
+
+                //                var_dump($response);
                 continue;
             }
 
             $db->tableName     = 'goods_price';
             $where['goods_id'] = $goods_id;
-            $result            = $db->find($where);
-//            var_dump($goods_id);exit;
+            $info            = $db->find($where);
 
-            if (empty($result)) {
+            if (empty($info)) {
                 echo "商品库找不到该商品: {$goods_id} {$url} \r\n";
                 continue;
             }
 
-            $preg = '/name: \"Price\",(.*?)data: \[(.*?)\[Date\.now/is';
+            $preg = '/"borderColor": "#004acc",(.*?)"data":(.*?), "fill": false, "steppedLine": "before", "label": "Price, HKD"}/is';
             preg_match($preg, $response, $match);
-            $item = str_replace(" - 1", '', $match[2]);
-            $item =  preg_replace_callback('/Date\.UTC\((.*?)\)/', function($matchs){
-                $date = str_replace(', ', '-', $matchs[1]);
-                return $matchs[0] = strtotime($date);
-            }, $item);
-            $item = substr(trim($item), 0, -1);
-            $json = '{"history":['. $item .']}';
+            $item = $match[2];
+            $json = '{"history":' . $item . '}';
             $reuslt = json_decode($json, true);
+//            var_dump($reuslt);exit;
             foreach ($reuslt['history'] as $key => $value) {
                 $data[$key]['goods_id'] = $goods_id;
-                $data[$key]['date'] = $value[0];
-                $data[$key]['price'] = $value[1] * 100;
+                $data[$key]['date'] = strtotime($value['x']);
+                $data[$key]['price'] = $value['y'] * 100;
             }
+            unset($match);
 
-            $preg = '/name: \"PS\+\",(.*?)data: \[(.*?)\[Date\.now/is';
+
+            $preg = '/"borderColor": "#FFC535",(.*?)"data":(.*?), "fill": false, "steppedLine": "before", "label": "PS\+, HKD"}/is';
             preg_match($preg, $response, $match);
-            $item = str_replace(" - 1", '', $match[2]);
-            $item =  preg_replace_callback('/Date\.UTC\((.*?)\)/', function($matchs){
-                $date = str_replace(', ', '-', $matchs[1]);
-                return $matchs[0] = strtotime($date);
-            }, $item);
-            $item = substr(trim($item), 0, -1);
-            $json = '{"plus_history":['. $item .']}';
+            $item = $match[2];
+            $json = '{"plus_history":' . $item . '}';
             $reuslt = json_decode($json, true);
 
             foreach ($reuslt['plus_history'] as $key => $value) {
                 $data[$key]['goods_id'] = $goods_id;
-                $data[$key]['date'] = $value[0];
-                $data[$key]['plus_price'] = $value[1] * 100;
+                $data[$key]['date'] = strtotime($value['x']);
+                $data[$key]['plus_price'] = $value['y'] * 100;
             }
-//var_dump($data);exit;
+            unset($match);
+            //移除当天日期的价格
+            array_pop($data);
             try {
                 $db->tableName = 'goods_price_history';
                 $db->delete(array('goods_id' => $goods_id));
@@ -168,6 +236,8 @@ class HandlePsPrice
 
             echo "商品 {$goods_id} 历史价格同步完成 {$i} \r\n";
             $i++;
+//            $rand = mt_rand(1,3);
+//            sleep($rand);
         }
 
         echo "脚本处理完毕 \r\n";
