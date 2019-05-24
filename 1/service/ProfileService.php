@@ -394,8 +394,8 @@ class ProfileService extends BaseService
         $game_info = $this->getGameOverviewFromCache($game_id);
         $trophy_info = $this->getTrophyInfoFromCache($game_id, $trophy_id);
 
-        $result['game_info'] = $game_info ? : '';
-        $result['trophy_info'] = $trophy_info ? : '';
+        $result['game_info'] = $game_info ? : array();
+        $result['trophy_info'] = $trophy_info ? : array();
 
         return $result;
     }
