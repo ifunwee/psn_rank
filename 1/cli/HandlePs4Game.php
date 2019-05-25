@@ -142,8 +142,6 @@ class HandlePs4Game extends BaseService
                 'description'        => $attr['long-description'] ?: '',
                 'rating_score'       => $attr['star-rating']['score'] ?: 0,
                 'rating_total'       => $attr['star-rating']['total'] ?: 0,
-                'preview'            => !empty($attr['media-list']['preview']) ? json_encode($attr['media-list']['preview']) : '',
-                'screenshots'        => !empty($attr['media-list']['screenshots']) ? json_encode($attr['media-list']['screenshots']) : '',
                 'release_date'       => $attr['release-date'] ? strtotime($attr['release-date']) : 0,
                 'publisher'          => $attr['provider-name'] ?: '',
                 'developer'          => '',
@@ -170,8 +168,8 @@ class HandlePs4Game extends BaseService
                 $db->insert($info);
             } else {
                 $info['update_time'] = time();
-                !empty($media['preview']) && $info['preview'] = $media['preview'];
-                !empty($media['screenshots']) && $info['screenshots'] = $media['screenshots'];
+//                !empty($media['preview']) && $info['preview'] = $media['preview'];
+//                !empty($media['screenshots']) && $info['screenshots'] = $media['screenshots'];
                 $condition['id']     = $result['id'];
                 $db->update($info, $condition);
             }
@@ -900,17 +898,26 @@ class HandlePs4Game extends BaseService
             if (empty($info['goods_id'])) {
                 continue;
             }
+
             $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $info['goods_id'];
             $response = $service->curl($url);
-            $data = json_decode($response, true);
-            if (empty($data['included'])) {
-                $url      = 'https://store.playstation.com/valkyrie-api/en/US/19/resolve/' . $info['goods_id'];
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+
+                $url = 'https://store.playstation.com/valkyrie-api/en/US/19/resolve/' . $info['goods_id'];
                 $response = $service->curl($url);
-                $data     = json_decode($response, true);
-                if (empty($data['included'])) {
-                    echo "商品 {$info['goods_id']} 远端媒体数据更新失败 \r\n";
+                if ($service->hasError()) {
+                    echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                    $service->flushError();
                     continue;
                 }
+            }
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                echo "商品 {$info['goods_id']} 远端媒体数据更新失败 \r\n";
+                var_dump($data);
+                continue;
             }
 
             $item = $data['included'][0];
@@ -920,15 +927,15 @@ class HandlePs4Game extends BaseService
                 'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
                 'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
             );
-
-            if (!empty($info['preview']) && !empty($info['screenshots'])) {
-                echo "商品 {$info['goods_id']} 无需更新数据 \r\n";
-                continue;
-            }
+var_dump($media);exit;
+//            if (!empty($info['preview']) && !empty($info['screenshots'])) {
+//                echo "商品 {$info['goods_id']} 无需更新数据 \r\n";
+//                continue;
+//            }
 
             $update = array();
-            empty($info['preview']) && $update['preview'] = $media['preview'];
-            empty($info['screenshots']) && $update['screenshots'] = $media['screenshots'];
+            !empty($media['preview']) && $update['preview'] = $media['preview'];
+            !empty($media['screenshots']) && $update['screenshots'] = $media['screenshots'];
 
             if (empty($update)) {
                 echo "商品 {$info['goods_id']} 无可用数据更新 \r\n";

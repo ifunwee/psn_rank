@@ -73,18 +73,18 @@ class HandlePsPrice
                 ':method: GET',
                 ':authority: psprices.com',
                 ':scheme: https',
-                ':path: /region-hk/game/2566697/grip',
+                ':path: /region-hk/game/1772300/the-evil-within-2',
                 'cache-control: max-age=0',
                 'upgrade-insecure-requests: 1',
-                'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36',
+                'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
                 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
-                'referer: https://psprices.com/region-hk/games/?platform=PS4',
-                'cookie:  cf_clearance=92822a89ad3699b2fc231a24d5ca7316b6765c7c-1557421043-3600-250;',
+                'referer: https://psprices.com/region-hk/game/1772300/the-evil-within-2',
+                'cookie: ezux_et_23600=303; ezovuuidtime_23600=1558723009; ezux_lpl_23600=1558723129096|0253d448-c86c-4ffe-7871-d90f26f61ca5; ezux_tos_23600=974; __cfduid=da1af2c8894a3591305b7112702d5e7c41558722997; cf_clearance=c075d884aa0dfc58fc931a09f7116d2b5c9f91fd-1558723008-3600-250; sessionid_psprices=qku2d1wizvhzs1gmjfu7tlggdhxe1x5u; sixpack_client_id=9917b899-8ead-4fb7-92a8-6d745aa78c76; ezoadgid_23600=-1; ezoref_23600=psprices.com; ezoab_23600=mod3; lp_23600=https://psprices.com/region-hk/game/1772300/the-evil-within-2; ezovuuid_23600=2a7ed1a5-e940-435b-6340-7db7f1b92690; ezopvc_23600=1; ezCMPCCS=true; __utma=201383568.1135609771.1558723011.1558723011.1558723011.1; __utmc=201383568; __utmz=201383568.1558723011.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmt_e=1; __utmt_f=1; amplitude_id_4c10dcec625be9239a8e354e44c07e43psprices.com=eyJkZXZpY2VJZCI6IjJhMzA5NWFjLWQ5MzEtNDk0NS1hMTkzLTFkMGI5MjcyNmQwYlIiLCJ1c2VySWQiOm51bGwsIm9wdE91dCI6ZmFsc2UsInNlc3Npb25JZCI6MTU1ODcyMzAxMjEyNCwibGFzdEV2ZW50VGltZSI6MTU1ODcyMzAxMjEyNCwiZXZlbnRJZCI6MCwiaWRlbnRpZnlJZCI6MCwic2VxdWVuY2VOdW1iZXIiOjB9; _fathom=%7B%22isNewVisitor%22%3Afalse%2C%22isNewSession%22%3Afalse%2C%22pagesViewed%22%3A%5B%22%2Fregion-hk%2Fgame%2F1772300%2Fthe-evil-within-2%22%5D%2C%22previousPageviewId%22%3A%22XsMzACGrvYEOD8oilhvl%22%2C%22lastSeen%22%3A1558723012793%7D; last_visit=1558694212941::1558723012941; _ym_uid=1558723013639807442; _ym_d=1558723013; _ym_isad=1; _ym_visorc_26749575=w; __utmb=201383568.6.8.1558723056372',
                 'Pragma: no-cache',
                 'content-type:charset=UTF-8',
                 'Cache-Control: no-cache',
             );
-            $url = 'https://psprices.com/region-hk/game/2566697/grip';
+//            $url = 'https://psprices.com/region-hk/game/1005013/horizon-zero-dawntm';
             $response = $service->curl($url, $header);
             $response = preg_replace('/(?<=\>)[\s]+(?=\<)/i', '', $response);
             $response = preg_replace('/\r|\n|\r\n|\t|/i', '', $response);
@@ -94,10 +94,11 @@ class HandlePsPrice
             $goods_id = trim($match[1]);
             $lowest_price = trim($match[3]);
             $plus_lowest_price = trim($match[5]);
+//            var_dump($response,$goods_id,$lowest_price,$plus_lowest_price);exit;
+
             if (empty($goods_id)) {
                 continue;
             }
-var_dump($goods_id,$lowest_price,$plus_lowest_price);exit;
             if ($lowest_price == 'Free') {
                 $lowest_price = 0;
             } else {
