@@ -33,6 +33,7 @@ class GoodsService extends BaseService
         'coming',     //即将到来
         'hot',       //热门游戏
         'best',      //评分最高
+        'fresh',      //新游推荐
     );
 
     public function __construct($lang = 'cn')

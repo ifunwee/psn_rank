@@ -137,6 +137,10 @@ class GameService extends GoodsService
                 'title' => '即将发售',
                 'type' => 'coming',
             ),
+            array(
+                'title' => '新游推荐',
+                'type' => 'fresh',
+            ),
         );
 
         return $data;
