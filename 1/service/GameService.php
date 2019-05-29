@@ -153,11 +153,16 @@ class GameService extends GoodsService
         }
 
         switch ($type) {
+            case 'fresh':
+                $where = "release_date <= UNIX_TIMESTAMP() and (mc_score <> NULL or rating_total >= 10)";
+                $sort = 'release_date desc, id desc';
+                $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
+                $list = $this->completeGoodsPrice($game_list);
+                break;
             case 'latest':
                 $where = "release_date <= UNIX_TIMESTAMP()";
                 $sort = 'release_date desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-
                 $list = $this->completeGoodsPrice($game_list);
                 break;
             case 'coming':
