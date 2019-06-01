@@ -630,7 +630,6 @@ class HandlePs4Game extends BaseService
             $push_list[$follow_info['open_id']][] = $follow_info['goods_id'];
         }
         foreach ($push_list as $open_id => $info) {
-            $open_id = 'ovl0Q5VQ_ZKf-GOvXTyixIEG7uBo';
             $redis_key = redis_key('reduce_price_notice_lock', $open_id);
             $lock = $redis->get($redis_key);
             if ($lock) {
