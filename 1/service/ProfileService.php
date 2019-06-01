@@ -56,6 +56,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $json = $service->curl($url, $header);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         $json = $service->uncamelizeJson($json);
 
         if (!empty($json)) {
@@ -107,6 +110,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $json = $service->curl($url, $header);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         $json = $service->uncamelizeJson($json);
         $json =  preg_replace_callback('/\"last_update_date\":\"(.*?)\"/', function($matchs){
             return str_replace($matchs[1], strtotime($matchs[1]), $matchs[0]);
@@ -182,7 +188,7 @@ class ProfileService extends BaseService
     {
         $data = $this->getUserGameInfo($psn_id, $game_id);
         if ($this->hasError()) {
-            return $this->getError();
+            return $this->setError($this->getError());
         }
 
         $trophy_total_num = !empty($data['defined_trophies']) ? array_sum($data['defined_trophies']) : 0;
@@ -305,6 +311,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $json = $service->curl($url, $header);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         $json = $service->uncamelizeJson($json);
         $json =  preg_replace_callback('/\"last_update_date\":\"(.*?)\"/', function($matchs){
             return str_replace($matchs[1], strtotime($matchs[1]), $matchs[0]);
@@ -366,6 +375,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $json = $service->curl($url, $header);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         $json = $service->uncamelizeJson($json);
         $json =  preg_replace_callback('/\"earned_date\":\"(.*?)\"/', function($matchs){
             return str_replace($matchs[1], strtotime($matchs[1]), $matchs[0]);
@@ -463,6 +475,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post');
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         return json_decode($data, true);
     }
 
@@ -491,6 +506,9 @@ class ProfileService extends BaseService
         $post_data = http_build_query($post_data);
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post');
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         if (!empty($data)) {
             $info = json_decode($data, true);
             if (!empty($info['error'])) {
@@ -529,6 +547,9 @@ class ProfileService extends BaseService
 
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post');
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         $data = json_decode($data, true);
 
         if (!empty($data['npsso'])) {
@@ -595,6 +616,9 @@ class ProfileService extends BaseService
         $post_data = http_build_query($post_data);
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post', $grant_info['sso_cookie']);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
         if (!empty($data)) {
             $info = json_decode($data, true);
             if (!empty($info['error'])) {
@@ -617,6 +641,9 @@ class ProfileService extends BaseService
         $url = "http://psnine.com/trophy/{$id}";
         $service = s('Common');
         $response = $service->curl($url);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
 
 
         //替换a标签跳转为#

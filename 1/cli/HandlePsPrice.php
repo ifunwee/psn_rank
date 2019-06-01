@@ -12,6 +12,7 @@ class HandlePsPrice
         $item_url_quene_key = 'ps_price_item_url_quene';
         $page = 1;
         $list = $redis->zRange($item_url_key, 0, -1);
+        var_dump($list);exit;
         $redis->delete($item_url_quene_key);
         foreach ($list as $item) {
             $redis->lpush($item_url_quene_key, $item);
@@ -23,14 +24,14 @@ class HandlePsPrice
             ':method: GET',
             ':authority: psprices.com',
             ':scheme: https',
-            ':path: /region-hk/games/?sort=name&platform=PS4&page=2',
+            ':path: /region-hk/games/?platform=PS4&page=1',
             'cache-control: max-age=0',
             'upgrade-insecure-requests: 1',
-            'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36',
+            'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
             'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
             'referer: https://psprices.com/region-hk/games/?sort=name&platform=PS4',
             'accept-language: zh-CN,zh;q=0.9',
-            'cookie: cf_clearance=9b624d0a6ecae9f3158798bb105c9c43087b8538-1557502917-3600-250',
+            'cookie: ezovuuidtime_23600=1558865468; ezux_lpl_23600=1558865479070|2efc1c3c-3f88-408a-4c03-f6609362c05b; ezux_ifep_23600=true; ezux_et_23600=69; ezux_tos_23600=114; __cfduid=dc7f70877c8e04cf3f3b6139d9a6ef2341558865396; sixpack_client_id=3fd6a659-277a-4a57-858c-20d9f2695dd3; ezoadgid_23600=-1; ezoref_23600=psprices.com; ezoab_23600=mod34; lp_23600=https://psprices.com/region-hk/games/?platform=PS4; ezovuuid_23600=dc88d5ef-28ce-4de8-707b-258a71bb4196; ezCMPCCS=true; __utma=201383568.415703083.1558865419.1558865419.1558865419.1; __utmc=201383568; __utmz=201383568.1558865419.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmt_e=1; __utmt_f=1; _ym_uid=1558865421840634743; _ym_d=1558865421; _ym_isad=1; _ym_visorc_26749575=w; cf_clearance=84ab604440d2146899ed6f3644af8b4a49a52802-1558863672-3600-250; ezopvc_23600=3; amplitude_id_4c10dcec625be9239a8e354e44c07e43psprices.com=eyJkZXZpY2VJZCI6IjU1YmI4MGM0LTU3NzItNDkyMS1hYzg3LWFjYWZiMzRlYjFiZFIiLCJ1c2VySWQiOm51bGwsIm9wdE91dCI6ZmFsc2UsInNlc3Npb25JZCI6MTU1ODg2NTQxOTYyNiwibGFzdEV2ZW50VGltZSI6MTU1ODg2NTQ3ODMxMywiZXZlbnRJZCI6MCwiaWRlbnRpZnlJZCI6MCwic2VxdWVuY2VOdW1iZXIiOjB9; last_visit=1558836678517::1558865478517; _fathom=%7B%22isNewVisitor%22%3Afalse%2C%22isNewSession%22%3Afalse%2C%22pagesViewed%22%3A%5B%22%2Fregion-hk%2Fgames%2F%3Fplatform%3DPS4%22%2C%22%2Fregion-hk%2Fgames%2F%3Fplatform%3DPS4%26page%3D3%22%2C%22%2Fregion-hk%2Fgames%2F%3Fplatform%3DPS4%26page%3D1%22%5D%2C%22previousPageviewId%22%3A%22tdZNfKLJdj25zWQ71sxl%22%2C%22lastSeen%22%3A1558865478935%7D; __utmb=201383568.16.8.1558865538246',
             'Pragma: no-cache',
             'content-type:charset=UTF-8',
             'Cache-Control: no-cache',
@@ -68,7 +69,6 @@ class HandlePsPrice
         $list = $redis->zrange($item_url_key, 0, -1);
         $i = 1;
         foreach ($list as $url) {
-//            $url = 'https://psprices.com/region-hk/game/1005013/horizon-zero-dawntm';
             $header = array(
                 ':method: GET',
                 ':authority: psprices.com',
@@ -79,7 +79,7 @@ class HandlePsPrice
                 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
                 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
                 'referer: https://psprices.com/region-hk/game/1772300/the-evil-within-2',
-                'cookie: ezux_et_23600=303; ezovuuidtime_23600=1558723009; ezux_lpl_23600=1558723129096|0253d448-c86c-4ffe-7871-d90f26f61ca5; ezux_tos_23600=974; __cfduid=da1af2c8894a3591305b7112702d5e7c41558722997; cf_clearance=c075d884aa0dfc58fc931a09f7116d2b5c9f91fd-1558723008-3600-250; sessionid_psprices=qku2d1wizvhzs1gmjfu7tlggdhxe1x5u; sixpack_client_id=9917b899-8ead-4fb7-92a8-6d745aa78c76; ezoadgid_23600=-1; ezoref_23600=psprices.com; ezoab_23600=mod3; lp_23600=https://psprices.com/region-hk/game/1772300/the-evil-within-2; ezovuuid_23600=2a7ed1a5-e940-435b-6340-7db7f1b92690; ezopvc_23600=1; ezCMPCCS=true; __utma=201383568.1135609771.1558723011.1558723011.1558723011.1; __utmc=201383568; __utmz=201383568.1558723011.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmt_e=1; __utmt_f=1; amplitude_id_4c10dcec625be9239a8e354e44c07e43psprices.com=eyJkZXZpY2VJZCI6IjJhMzA5NWFjLWQ5MzEtNDk0NS1hMTkzLTFkMGI5MjcyNmQwYlIiLCJ1c2VySWQiOm51bGwsIm9wdE91dCI6ZmFsc2UsInNlc3Npb25JZCI6MTU1ODcyMzAxMjEyNCwibGFzdEV2ZW50VGltZSI6MTU1ODcyMzAxMjEyNCwiZXZlbnRJZCI6MCwiaWRlbnRpZnlJZCI6MCwic2VxdWVuY2VOdW1iZXIiOjB9; _fathom=%7B%22isNewVisitor%22%3Afalse%2C%22isNewSession%22%3Afalse%2C%22pagesViewed%22%3A%5B%22%2Fregion-hk%2Fgame%2F1772300%2Fthe-evil-within-2%22%5D%2C%22previousPageviewId%22%3A%22XsMzACGrvYEOD8oilhvl%22%2C%22lastSeen%22%3A1558723012793%7D; last_visit=1558694212941::1558723012941; _ym_uid=1558723013639807442; _ym_d=1558723013; _ym_isad=1; _ym_visorc_26749575=w; __utmb=201383568.6.8.1558723056372',
+                'cookie: cf_clearance=3b9c436fb235b7dde953cc7439b4fe0d120dbacb-1558872785-3600-250',
                 'Pragma: no-cache',
                 'content-type:charset=UTF-8',
                 'Cache-Control: no-cache',

@@ -118,7 +118,7 @@ class GameService extends GoodsService
         return $list;
     }
 
-    public function getDiscoveryTab()
+    public function getTab()
     {
         $data = array(
             array(
@@ -146,7 +146,7 @@ class GameService extends GoodsService
         return $data;
     }
 
-    public function getDiscoveryList($type, $page = 1, $limit = 20)
+    public function getTabList($type, $page = 1, $limit = 20)
     {
         if (empty($type)) {
             return $this->setError('param_type_is_empty');

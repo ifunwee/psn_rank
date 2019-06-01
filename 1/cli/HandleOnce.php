@@ -25,8 +25,8 @@ class HandleOnce
             }
 
             if (!empty($data)) {
-                $db->update($data, array('id' => $info['id']));
-                echo "数据校正成功 {$info['id']} \r\n";
+                $db->update($data, array('goods_id' => $info['goods_id']));
+                echo "数据校正成功 {$info['goods_id']} \r\n";
             }
         }
     }

@@ -119,7 +119,7 @@ class GoodsService extends BaseService
             'main_goods_id' => $game_info['main_goods_id'] ? : '',
             'display_name' => $game_info['display_name'] ? : '',
             'introduction' => $game_info['introduction'] ? : '',
-            'cover_image' => s('Common')->handlePsnImage($info['cover_image'], 480, 480),
+            'cover_image' => s('Common')->handlePsnImage($game_info['cover_image'], 480, 480),
             'developer' => $game_info['developer'] ? : '',
             'publisher' => $game_info['publisher'] ? : '',
             'franchises' => $game_info['franchises'] ? : '',

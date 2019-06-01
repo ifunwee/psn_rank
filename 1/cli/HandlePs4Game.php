@@ -61,8 +61,8 @@ class HandlePs4Game extends BaseService
     {
         $db            = pdo();
         $db->tableName = 'game_code';
-        $last_id       = 0;
-        $list          = $db->findAll("id > {$last_id}", '*', 'id desc');
+        $last_id       = 99999;
+        $list          = $db->findAll("id < {$last_id}", '*', 'id desc');
         if (empty($list)) {
             return false;
         }
@@ -168,9 +168,9 @@ class HandlePs4Game extends BaseService
                 $db->insert($info);
             } else {
                 $info['update_time'] = time();
-//                !empty($media['preview']) && $info['preview'] = $media['preview'];
-//                !empty($media['screenshots']) && $info['screenshots'] = $media['screenshots'];
-                $condition['id']     = $result['id'];
+                empty($result['preview']) && $info['preview'] = $media['preview'];
+                empty($result['screenshots']) && $info['screenshots'] = $media['screenshots'];
+                $condition['goods_id']     = $result['goods_id'];
                 $db->update($info, $condition);
             }
 
@@ -605,7 +605,7 @@ class HandlePs4Game extends BaseService
         $date = strtotime(date('Y-m-d', time()));
         $redis = r('psn_redis');
         $db = pdo();
-        $sql = "select a.*,b.plus_origin_price,b.plus_tag from goods_price_history a left join goods_price b on a.goods_id = b.goods_id where a.date = {$date} and a.start_date > 0";
+        $sql = "select a.*,b.plus_origin_price,b.plus_tag,b.plus_discount from goods_price_history a left join goods_price b on a.goods_id = b.goods_id where a.date = {$date} and a.start_date > 0";
         $list = $db->query($sql);
         if (empty($list)) {
             log::n('discount_goods_is_empty');
@@ -615,62 +615,92 @@ class HandlePs4Game extends BaseService
         $service = s('MiniProgram', 'price');
         $goods_service = s('Goods');
         $goods_id_arr = array_column($list, 'goods_id');
+        $goods_id_str = implode("','", $goods_id_arr);
+        $goods_list = array();
+        foreach ($list as $info) {
+            $goods_list[$info['goods_id']] = $info;
+        }
 
         $goods_info_arr = $goods_service->getGoodsInfo($goods_id_arr);
-        foreach ($list as $info) {
-            $db->tableName = 'follow';
-            $condition['goods_id'] = $info['goods_id'];
-            $condition['status'] = 1;
-            $follow_list = $db->findAll($condition);
-            foreach ($follow_list as $follow_info) {
-                $redis_key = redis_key('reduce_price_notice_lock', $follow_info['open_id'], $info['goods_id']);
-                $lock = $redis->get($redis_key);
-                if ($lock) {
-                    echo "reduce_price_notice_lock:{$follow_info['open_id']}  {$info['goods_id']} \r\n";
-                    continue;
-                }
+        $sql = "select * from follow where goods_id in ('{$goods_id_str}') and status = 1 order by open_id desc";
+        $follow_list = $db->query($sql);
 
-                $content['touser'] = $follow_info['open_id'];
-                $content['template_id'] = 'BOQSUtVluGMal68HJAh6XZlO2X7kxg8_V8WCo_VGCkA';
-                $content['page'] = 'pages/detail/detail?goods_id=' . $info['goods_id'];
-                $form_id = $service->getFormId($follow_info['open_id']);
-                if ($service->hasError()) {
-                    log::w("get_form_id_fail: {$follow_info['open_id']} " . json_encode($service->getError()));
-                    $service->flushError();
-                    continue;
+        $push_list = array();
+        foreach ($follow_list as $follow_info) {
+            $push_list[$follow_info['open_id']][] = $follow_info['goods_id'];
+        }
+        foreach ($push_list as $open_id => $info) {
+            $open_id = 'ovl0Q5VQ_ZKf-GOvXTyixIEG7uBo';
+            $redis_key = redis_key('reduce_price_notice_lock', $open_id);
+            $lock = $redis->get($redis_key);
+            if ($lock) {
+                echo "reduce_price_notice_lock:{$open_id} \r\n";
+                continue;
+            }
+            $content['touser'] = $open_id;
+            $content['template_id'] = 'BOQSUtVluGMal68HJAh6XZlO2X7kxg8_V8WCo_VGCkA';
+            $form_id = $service->getFormId($open_id);
+
+            if ($service->hasError()) {
+                echo ("get_form_id_fail: $open_id \r\n" . json_encode($service->getError()));
+                log::w("get_form_id_fail: $open_id " . json_encode($service->getError()));
+                $service->flushError();
+                continue;
+            }
+            $content['form_id'] = $form_id['form_id'];
+            $game_str = '';
+
+            if (count($info) > 1) {
+                $top = array_splice($info, 0, 3);
+                foreach ($top as $key => $goods_id) {
+                    $game_str .= $key < count($top)-1 ? "《{$goods_info_arr[$goods_id]['name_cn']}》、" : "《{$goods_info_arr[$goods_id]['name_cn']}》";
                 }
-                $content['form_id'] = $form_id['form_id'];
-                $start_date = date('Y-m-d', $info['start_date']);
-                $end_date = $info['end_date'] ? date('Y-m-d', $info['end_date']) : '未知期限';
-                $plus_origin_price = $info['plus_origin_price']/100;
-                $plus_price = $info['plus_price']/100;
                 $content['data'] = array(
                     'keyword1' => array(
-                        'value' => "您关注的游戏 《{$goods_info_arr[$info['goods_id']]['name_cn']}》价格有变化",
+                        'value' => count($info) <= 3 ? "您订阅的游戏{$game_str}发生变化" : "您订阅的游戏{$game_str}等发生变化",
                     ),
                     'keyword2' => array(
-                        'value' => "优惠截止至 {$end_date}",
+                        'value' => '折扣于' . date('Y-m-d') . '开始',
                     ),
                     'keyword3' => array(
-                        'value' => "折扣力度: {$info['plus_discount']}%  {$plus_origin_price}港币 -> {$plus_price}港币" ,
+                        'value' => "点击查看更多详情" ,
                     ),
                 );
-                $json = json_encode($content);
-                $service->sendMessage($json);
-                if ($service->hasError()) {
-                    echo "send_message_fail: {$follow_info['open_id']} {$info['goods_id']} \r\n";
-                    log::w("send_message_fail:" . json_encode($service->getError()) . $json);
-                    $service->flushError();
-                    continue;
-                }
-                log::i("send_message_success: {$follow_info['open_id']} {$info['goods_id']}");
-                echo "send_message_success: {$follow_info['open_id']} {$info['goods_id']} \r\n";
-
-                $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
-                $redis->set($redis_key, time());
-                $redis->expireAt($redis_key, $expire_time);
+                $content['page'] = 'pages/myfollow/myfollow?open_id=' . $open_id;
+            } else {
+                $goods_id = $info[0];
+                $end_date = $goods_list[$goods_id]['end_date'] ? date('Y-m-d', $goods_list[$goods_id]['end_date']) : '';
+                $end_date_str = $end_date ? "优惠截止至{$end_date}" : "暂无说明优惠截止时间";
+                $content['data'] = array(
+                    'keyword1' => array(
+                        'value' => "您订阅的游戏 《{$goods_info_arr[$goods_id]['name_cn']}》发生变化",
+                    ),
+                    'keyword2' => array(
+                        'value' => $end_date_str,
+                    ),
+                    'keyword3' => array(
+                        'value' => "折扣力度: {$goods_list[$goods_id]['plus_discount']}%" ,
+                    ),
+                );
+                $content['page'] = 'pages/detail/detail?goods_id=' . $goods_id;
             }
+
+            $json = json_encode($content);
+            $service->sendMessage($json);
+            if ($service->hasError()) {
+                echo "send_message_fail: {$open_id} {$json} \r\n" .  json_encode($service->getError());
+                log::w("send_message_fail:" . json_encode($service->getError()) . $json);
+                $service->flushError();
+                continue;
+            }
+            log::i("send_message_success: {$open_id} {$json}");
+            echo "send_message_success: {$open_id} {$json} \r\n";
+
+            $expire_time = strtotime(date('Y-m-d 12:00:00',time() + 86400));
+            $redis->set($redis_key, 1);
+            $redis->expireAt($redis_key, $expire_time);
         }
+
     }
 
     public function handleDisplayName()
@@ -780,6 +810,7 @@ class HandlePs4Game extends BaseService
                     $data['screenshots'] = $game['screenshots'];
                     $data['videos'] = $game['videos'];
                     $data['status'] = $game['status'];
+                    $data['update_time'] = time();
 
                     $db->update($data, $where);
                 }
@@ -898,7 +929,6 @@ class HandlePs4Game extends BaseService
             if (empty($info['goods_id'])) {
                 continue;
             }
-
             $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $info['goods_id'];
             $response = $service->curl($url);
             if ($service->hasError()) {
@@ -927,7 +957,7 @@ class HandlePs4Game extends BaseService
                 'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
                 'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
             );
-var_dump($media);exit;
+
 //            if (!empty($info['preview']) && !empty($info['screenshots'])) {
 //                echo "商品 {$info['goods_id']} 无需更新数据 \r\n";
 //                continue;

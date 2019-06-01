@@ -20,7 +20,7 @@ class GameInterface extends BaseInterface
     public function getTab()
     {
         $service = s('Game');
-        $result = $service->getDiscoveryTab();
+        $result = $service->getTab();
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
@@ -35,12 +35,17 @@ class GameInterface extends BaseInterface
         $page = getParam('page');
 
         $service = s('Game');
-        $result = $service->getDiscoveryList($type, $page);
+        $result = $service->getTabList($type, $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
         $this->respondSuccess($result);
+    }
+
+    public function filter()
+    {
+
     }
 }
