@@ -384,7 +384,7 @@ class GoodsService extends BaseService
             return $this->setError('param_developer_is_empty');
         }
 
-
+        $developer = addslashes($developer);
         $db = pdo();
         $sql = "select * from game where developer = '{$developer}' and game_id <> {$game_id} order by rating_total desc limit 6 ";
         $game_list = $db->query($sql);
