@@ -460,9 +460,9 @@ class HandleGameFaqs
                     $difficulty = 3;
                     break;
                 case 'Tough':
-                case 'Tough-Unforgiving':
                     $difficulty = 4;
                     break;
+                case 'Tough-Unforgiving':
                 case 'Unforgiving':
                     $difficulty = 5;
                     break;

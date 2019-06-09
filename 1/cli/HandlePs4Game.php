@@ -641,7 +641,7 @@ class HandlePs4Game extends BaseService
             $form_id = $service->getFormId($open_id);
 
             if ($service->hasError()) {
-                echo ("get_form_id_fail: $open_id \r\n" . json_encode($service->getError()));
+                echo ("get_form_id_fail: $open_id" . json_encode($service->getError()) . "\r\n");
                 log::w("get_form_id_fail: $open_id " . json_encode($service->getError()));
                 $service->flushError();
                 continue;

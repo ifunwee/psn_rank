@@ -31,4 +31,11 @@ class HandleOnce
         }
     }
 
+    public function fixLowestPrice()
+    {
+        $db = pdo();
+        $sql = 'update (select *,min(price) as min_price,min(`plus_price`) min_plus_price from `goods_price_history` group by goods_id) a, goods_price b set b.`lowest_price` = a.min_price, b.`plus_lowest_price` = a.min_plus_price where a.goods_id = b.goods_id';
+        $db->exec($sql);
+    }
+
 }

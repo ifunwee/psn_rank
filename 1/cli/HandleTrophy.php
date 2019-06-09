@@ -239,5 +239,36 @@ class HandleTrophy extends BaseService
         }
     }
 
+    public function syncGameTrophyRelation()
+    {
+        $redis = r('psn_redis');
+        $db = pdo();
+        $db->tableName = 'game';
+        $list = $db->findAll('id > 0', 'id,game_id, np_title_id, display_name', 'id asc');
+
+        $service = s('Profile');
+        foreach ($list as $game) {
+            $trophy_info = $service->getTrophyInfoByNptitleId($game['np_title_id']);
+            if ($service->hasError()) {
+                echo "get_np_communiction_id_fail: {$service->getErrorCode()} {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+                continue;
+            }
+
+            if (empty($trophy_info['np_communication_id'])) {
+                continue;
+            }
+
+            $data['np_communication_id'] = $trophy_info['np_communication_id'];
+            $where['game_id'] = $game['game_id'];
+            $db->update($data, $where);
+            $redis_key = redis_key('relation_game_trophy', $game['game_id']);
+            $redis->set($redis_key, $trophy_info['np_communication_id']);
+            echo "id: {$game['id']} game_id: {$game['game_id']} np_communication_id: {$trophy_info['np_communication_id']} game_name: {$game['display_name']} trophy_name: {$trophy_info['trophy_title_name']} 游戏奖杯关联成功\r\n";
+        }
+
+        echo "{date('Y-m-d')}脚本执行完成";
+    }
+
 
 }
