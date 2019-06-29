@@ -13,11 +13,11 @@ class HandleOnce
 
         foreach ($list as $info) {
             if (!empty($info['preview'])) {
-                $data['preview'] = preg_replace('/https(.*?)\.net/i','', $info['preview']) ;
+                $data['preview'] = preg_replace('/https:\/\/apollo2.dl.playstation.net/i','', $info['preview']) ;
             }
 
             if (!empty($info['screenshots'])) {
-                $data['screenshots'] = preg_replace('/https(.*?)\.net/i','', $info['screenshots']) ;
+                $data['screenshots'] = preg_replace('/https:\/\/apollo2.dl.playstation.net/i','', $info['screenshots']) ;
             }
 
             if (!empty($info['cover_image'])) {

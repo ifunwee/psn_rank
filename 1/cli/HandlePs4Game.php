@@ -152,8 +152,8 @@ class HandlePs4Game extends BaseService
             );
 
             $media = array(
-                'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
-                'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
+                'preview'            => !empty($attr['media-list']['preview']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['preview'])) : '',
+                'screenshots'        => !empty($attr['media-list']['screenshots']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['screenshots'])) : '',
             );
             if (!empty($info['cover_image'])) {
                 $info['cover_image'] = str_replace('https://store.playstation.com', '', $info['cover_image']);
@@ -194,7 +194,7 @@ class HandlePs4Game extends BaseService
         $redis         = r('psn_redis');
         $db->tableName = 'game_code';
         $last_id       = 0;
-        $list          = $db->findAll("id > {$last_id}", '*', 'id asc');
+        $list          = $db->findAll("id > {$last_id}", '*', 'id desc');
         if (empty($list)) {
             return false;
         }
@@ -799,8 +799,6 @@ class HandlePs4Game extends BaseService
                 } else {
                     $game_id = $info['game_id'];
                     $data['main_goods_id'] = $game['main_goods_id'];
-                    $data['origin_name'] = $game['origin_name'];
-                    $data['display_name'] = $game['display_name'];
                     $data['cover_image'] = $game['cover_image'];
                     $data['language_support'] = $game['language_support'];
                     $data['is_chinese_support'] = $game['is_chinese_support'];
@@ -953,8 +951,8 @@ class HandlePs4Game extends BaseService
             $attr = $item['attributes'];
 
             $media = array(
-                'preview'            => !empty($attr['media-list']['preview']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['preview'])) : '',
-                'screenshots'        => !empty($attr['media-list']['screenshots']) ? preg_replace('/https(.*?)\.net/i','',json_encode($attr['media-list']['screenshots'])) : '',
+                'preview'            => !empty($attr['media-list']['preview']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['preview'])) : '',
+                'screenshots'        => !empty($attr['media-list']['screenshots']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['screenshots'])) : '',
             );
 
 //            if (!empty($info['preview']) && !empty($info['screenshots'])) {
