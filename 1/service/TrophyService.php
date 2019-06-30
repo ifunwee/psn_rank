@@ -96,7 +96,7 @@ class TrophyService extends BaseService
         //todo 时间排序在非全量更新的时候 会有问题
         switch ($sort_type) {
             case 'time':
-                $sort = 'update_time desc'; break;
+                $sort = 'update_time asc, id asc'; break;
             case 'progress':
                 $sort = 'progress desc, id asc'; break;
             default:
