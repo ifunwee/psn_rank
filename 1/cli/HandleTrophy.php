@@ -1,84 +1,35 @@
 <?php
 class HandleTrophy extends BaseService
 {
-    const PSN_ID = 'nmxwzy';
-    public function addTrophyTitle()
+    public function syncTrophyTitle()
     {
-        $service = s('Profile');
-        $info = $service->getApiAccessToken();
-        if ($this->hasError()) {
-            return $this->setError($this->getError());
-        }
+        $redis = r('psn_redis');
+        $sync_mq_key = redis_key('mq_sync_user_trophy_title');
+        /** @var  $service TrophyService */
+        $service = s('Trophy');
 
-        $is_loop = true;
-        $offset = 0;
-        $limit = 100;
-        $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
-        $param = array(
-            'npLanguage' => 'zh-CN',
-            'fields' => '@default,trophyTitleSmallIconUrl',
-            'platform' => 'PS4,PSVITA,PS3',
-            'returnUrlScheme' => 'http',
-            'offset' => $offset,
-            'limit' => $limit,
-            'comparedUser' => self::PSN_ID,
-        );
-
-        $service = s('Common');
-        while ($is_loop) {
-            $param_str = http_build_query($param);
-            $request = $url . $param_str;
-            $header = array(
-                "Origin: https://id.sonyentertainmentnetwork.com",
-                "Authorization:{$info['token_type']} {$info['access_token']}"
-            );
-
-            $json = $service->curl($request, $header);
-            $json = $service->uncamelizeJson($json);
-            $json =  preg_replace_callback('/\"last_update_date\":\"(.*?)\"/', function($matchs){
-                return str_replace($matchs[1], strtotime($matchs[1]), $matchs[0]);
-            }, $json);
-
-            $data = json_decode($json, true);
-            if (empty($data['trophy_titles'])) {
-                $is_loop = false;
-                echo "任务处理完成";
-            } else {
-                $now = time();
-                $db = pdo();
-                foreach ($data['trophy_titles'] as $trophy) {
-                    try {
-                        $np_communication_id = $trophy['np_communication_id'];
-                        $name = addslashes($trophy['trophy_title_name']);
-                        $detail = addslashes($trophy['trophy_title_detail']);
-                        $name = str_replace('™', '', $name);
-                        $name = str_replace('®', '', $name);
-                        $detail = str_replace('™', '', $detail);
-                        $detail = str_replace('®', '', $detail);
-
-                        $icon_url = $trophy['trophy_title_icon_url'];
-                        $small_icon_url = $trophy['trophy_title_small_icon_url'];
-                        $platform = $trophy['trophy_title_platfrom'];
-                        $has_trophy_group = (int)$trophy['has_trophy_groups'];
-                        $bronze = (int)$trophy['defined_trophies']['bronze'];
-                        $silver = (int)$trophy['defined_trophies']['silver'];
-                        $gold = (int)$trophy['defined_trophies']['gold'];
-                        $platinum = (int)$trophy['defined_trophies']['platinum'];
-
-                        $sql = "insert into trophy_title (np_communication_id, name, detail, icon_url, small_icon_url, platform, has_trophy_group, bronze, silver, gold, platinum, create_time)
-                        values('{$np_communication_id}', '{$name}', '{$detail}', '{$icon_url}', '{$small_icon_url}', '{$platform}', {$has_trophy_group}, {$bronze}, {$silver}, {$gold}, '{$platinum}', {$now})
-                        on duplicate key update update_time = {$now}";
-
-                        $db->exec($sql);
-                    } catch (Exception $e) {
-                        echo "写入数据库出现异常: {$e->getMessage()} \r\n";
-                        continue;
-                    }
-                    echo "写入数据库成功：{$trophy['np_communication_id']} \r\n";
+        while ($redis->lLen($sync_mq_key) > 0) {
+            $psn_id = $redis->rPop($sync_mq_key);
+            $offset = 0;
+            $limit = 100;
+            $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
+            while (true) {
+                $list = $service->syncUserTrophyTitleListFromSony($psn_id, $offset, $limit);
+                if ($service->hasError()) {
+                    //同步出现异常 则抹去全量同步时间 让用户下次操作 可以重新进行全量同步
+                    $redis->expire($sync_time_whole_key, 0);
+                    $service->flushError();
+                    break;
                 }
-                $param['offset'] += $limit;
+                if (empty($list)) {
+                    $redis->set($sync_time_whole_key, time());
+                    break;
+                }
+                $offset += $limit;
+                echo "{$psn_id} 同步奖杯头衔信息成功，偏移值{$offset} \r\n";
             }
         }
+
     }
 
     public function addTrophyDetail()
@@ -102,14 +53,14 @@ class HandleTrophy extends BaseService
     //更新所有用户top100奖杯数据
     public function updateTrophyTitle()
     {
-        $service = s('Profile');
+        $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
-        if ($this->hasError()) {
-            return $this->setError($this->getError());
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
         }
 
         $db = pdo();
-        $sql = "select psn_id from account where psn_id is not null and psn_id <> '' and id <= 3120 order by id desc";
+        $sql = "select psn_id from account where psn_id is not null and psn_id = 'luobro' order by id desc";
         $list = $db->query($sql);
         $offset = 0;
         $limit = 100;
@@ -155,14 +106,13 @@ class HandleTrophy extends BaseService
                 try {
                     $where['np_communication_id'] = $trophy['np_communication_id'];
                     $result = $db->find($where);
-
                     if (!empty($result)) {
                         continue;
                     }
 
                     $np_communication_id = $trophy['np_communication_id'];
-                    $name = addslashes($trophy['trophy_title_name']);
-                    $detail = addslashes($trophy['trophy_title_detail']);
+                    $name = $trophy['trophy_title_name'];
+                    $detail = $trophy['trophy_title_detail'];
                     $name = str_replace('™', '', $name);
                     $name = str_replace('®', '', $name);
                     $detail = str_replace('™', '', $detail);
@@ -203,6 +153,7 @@ class HandleTrophy extends BaseService
         echo "任务处理完成";
     }
 
+    //【废弃】通过syncGameTrophyRelation方法关联
     public function gameTrophyRelation()
     {
         $db = pdo();
@@ -225,18 +176,6 @@ class HandleTrophy extends BaseService
         }
 
         echo "任务处理完成";
-    }
-
-    public function syncGameTrophyRelationToCache()
-    {
-        $db = pdo();
-        $redis = r('psn_redis');
-        $sql = "select game_id,np_communication_id from game where np_communication_id <> ''";
-        $list = $db->query($sql);
-        foreach ($list as $game) {
-            $redis_key = redis_key('relation_game_trophy', $game['game_id']);
-            $redis->set($redis_key, $game['np_communication_id']);
-        }
     }
 
     public function syncGameTrophyRelation()

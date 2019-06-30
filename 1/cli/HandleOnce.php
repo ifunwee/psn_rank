@@ -38,4 +38,16 @@ class HandleOnce
         $db->exec($sql);
     }
 
+    public function fixGameTrophyRelationToCache()
+    {
+        $db = pdo();
+        $redis = r('psn_redis');
+        $sql = "select game_id,np_communication_id from game where np_communication_id <> ''";
+        $list = $db->query($sql);
+        foreach ($list as $game) {
+            $redis_key = redis_key('relation_game_trophy', $game['game_id']);
+            $redis->set($redis_key, $game['np_communication_id']);
+        }
+    }
+
 }

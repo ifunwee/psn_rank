@@ -199,77 +199,13 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($data);
     }
 
-    /**
-     * 获取登陆验证码
-     */
-    public function getCaptcha()
+
+
+    public function getTrophyInfoByNptitleId()
     {
+        $np_title_id = getParam('np_title_id');
         $service      = s('Profile');
-        $info = $service->getCaptcha();
-
-        if ($service->hasError()) {
-            $this->respondFailure($service->getError());
-        }
-
-        $this->respondSuccess($info);
-    }
-
-    /**
-     * 获取登陆access_token
-     */
-    public function getLoginAccessToken()
-    {
-        $valid_code = getParam('valid_code');
-        $challenge = getParam('challenge');
-        $reflush = getParam('reflush', 0);
-
-        $service      = s('Profile');
-        $info = $service->getLoginAccessToken($valid_code, $challenge, $reflush);
-
-        if ($service->hasError()) {
-            $this->respondFailure($service->getError());
-        }
-
-        $this->respondSuccess($info);
-    }
-
-    /**
-     * 获取sso
-     */
-    public function getNpsso()
-    {
-        $service      = s('Profile');
-        $info = $service->getNpsso();
-
-        if ($service->hasError()) {
-            $this->respondFailure($service->getError());
-        }
-
-        $this->respondSuccess($info);
-    }
-
-    /**
-     * 获取grant_code
-     */
-    public function getGrantCode()
-    {
-        $service      = s('Profile');
-        $info = $service->getGrantCode();
-
-        if ($service->hasError()) {
-            $this->respondFailure($service->getError());
-        }
-
-        $this->respondSuccess($info);
-    }
-
-    /**
-     * 获取api access_token
-     */
-    public function getApiAccessToken()
-    {
-        $service      = s('Profile');
-        $info = $service->getApiAccessToken();
+        $info = $service->getTrophyInfoByNptitleId($np_title_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());

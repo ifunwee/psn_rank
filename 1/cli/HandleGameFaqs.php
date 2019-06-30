@@ -5,7 +5,7 @@ class HandleGameFaqs
     public function getItemUrl()
     {
         $service = s('Common');
-        $service->is_proxy = true;
+//        $service->is_proxy = true;
 
         $host = 'https://gamefaqs.gamespot.com';
         $redis = r('psn_redis');
@@ -72,7 +72,7 @@ class HandleGameFaqs
     public function getData()
     {
         $service = s('Common');
-        $service->is_proxy = true;
+//        $service->is_proxy = true;
 
         $db = pdo();
         $redis = r('psn_redis');

@@ -80,6 +80,7 @@ class MiniProgramService extends BaseService
                 $service = s('Profile');
                 $psn_id = $service->getPsnId($response['openid']);
                 $data['open_id'] = $response['openid'];
+                $data['union_id'] = json_encode($response);
                 $data['psn_id'] = $psn_id;
 
                 break;
