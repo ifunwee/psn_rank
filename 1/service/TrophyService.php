@@ -21,7 +21,7 @@ class TrophyService extends BaseService
                 'icon_url' => $trophy_info[$np_communication_id]['icon_url'],
                 'small_icon_url' => $trophy_info[$np_communication_id]['small_icon_url'],
                 'platform' => $trophy_info[$np_communication_id]['platform'],
-                'has_trophy_group' => $trophy_info[$np_communication_id]['has_trophy_group'] ? 1 : 0,
+                'has_trophy_group' => $trophy_info[$np_communication_id]['has_trophy_group'] ? '1' : '0',
             );
 
             $info['defined_trophy'] = array(
@@ -37,6 +37,7 @@ class TrophyService extends BaseService
                 'silver' =>  $item['silver'],
                 'gold' =>  $item['gold'],
                 'platinum' => $item['platinum'],
+                'update_time' => $item['update_time'],
             );
 
             $list[] = $info;
@@ -70,7 +71,7 @@ class TrophyService extends BaseService
             $tips = '已为您同步近期数据，历史数据将在后台持续为您同步';
         } else {
             //非首次 则更新最近30个游戏
-            if (time() - (int)$sync_time <= 900) {
+            if (time() - (int)$sync_time <= 600) {
                 return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
             }
         }
@@ -93,14 +94,13 @@ class TrophyService extends BaseService
             return $this->setError('param_psn_id_is_empty');
         }
 
-        //todo 时间排序在非全量更新的时候 会有问题
         switch ($sort_type) {
             case 'time':
-                $sort = 'update_time asc, id asc'; break;
+                $sort = 'update_time desc'; break;
             case 'progress':
-                $sort = 'progress desc, id asc'; break;
+                $sort = 'progress desc, update_time desc'; break;
             default:
-                $sort = 'update_time asc, id asc'; break;
+                $sort = 'update_time desc'; break;
         }
 
         $where = "psn_id = '{$psn_id}'";
@@ -109,7 +109,7 @@ class TrophyService extends BaseService
         return $list;
     }
 
-    private function getTrophyTitleListFromDb($where, $field = array(), $sort = '', $page = 1, $limit = 5)
+    private function getTrophyTitleListFromDb($where, $field = array(), $sort = '', $page = 1, $limit = 10)
     {
         $where = $where ? $where : '1=1';
         $field = $field ? implode(',', $field) : '*';
@@ -238,7 +238,7 @@ class TrophyService extends BaseService
         $now = time();
         $sql = "insert into trophy_title_user (psn_id, np_communication_id, progress, bronze, silver, gold, platinum, create_time, update_time)
                 values('{$psn_id}', '{$np_communication_id}', {$progress}, {$bronze}, {$silver}, {$gold}, {$platinum}, {$now}, {$update_time})
-                on duplicate key update progress={$progress}, bronze={$bronze}, silver={$silver}, gold={$gold}, platinum={$platinum}, update_time={$now}";
+                on duplicate key update progress={$progress}, bronze={$bronze}, silver={$silver}, gold={$gold}, platinum={$platinum}, update_time={$update_time}";
 
         try {
             $db->exec($sql);
