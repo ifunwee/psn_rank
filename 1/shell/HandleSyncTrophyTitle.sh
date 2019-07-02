@@ -15,6 +15,6 @@ fi
 while true
 do
     echo $(date '+%s') > ${pid_dir}/$$
-    /app/bin/php /data/html/psn_rank/cli.php v8ejrnh1289uvfg1e4kjda9f1u v1 HandleTrophy syncTrophyTitle >> log/HandleTrophy_syncTrophyTitle.log 2>&1
+    /app/bin/php ../../cli.php v8ejrnh1289uvfg1e4kjda9f1u v1 HandleTrophy syncTrophyTitle >> log/HandleTrophy_syncTrophyTitle.log 2>&1
     sleep "$sleep_time"
 done

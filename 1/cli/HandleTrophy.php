@@ -26,7 +26,8 @@ class HandleTrophy extends BaseService
                     break;
                 }
                 $offset += $limit;
-                echo "{$psn_id} 同步奖杯头衔信息成功，偏移值{$offset} \r\n";
+                $time = date('Y-m-d H:i:s');
+                echo "{$time}: {$psn_id} 同步奖杯头衔信息成功，偏移值{$offset} \r\n";
             }
         }
 
