@@ -361,6 +361,11 @@ class HandlePs4Game extends BaseService
             }
             $url      = 'https://store.playstation.com/valkyrie-api/zh/hk/19/resolve/' . $info['np_title_id'];
             $response = $service->curl($url);
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+                continue;
+            }
             $data = json_decode($response, true);
             if (empty($data['data']['relationships']['children']['data'])) {
                 $url      = 'https://store.playstation.com/valkyrie-api/zh/HK/19/resolve/' . $info['np_title_id'];
@@ -388,6 +393,9 @@ class HandlePs4Game extends BaseService
                 continue;
             }
 
+            $where['np_title_id'] = $info['np_title_id'];
+            $update['is_main'] = 0;
+            $db->update($update, $where);
 
             $where['goods_id'] = $main_goods_id;
             $where['np_title_id'] = $info['np_title_id'];
@@ -669,7 +677,7 @@ class HandlePs4Game extends BaseService
             } else {
                 $goods_id = $info[0];
                 $end_date = $goods_list[$goods_id]['end_date'] ? date('Y-m-d', $goods_list[$goods_id]['end_date']) : '';
-                $end_date_str = $end_date ? "优惠截止至{$end_date}" : "暂无说明优惠截止时间";
+                $end_date_str = $end_date ? "截止至{$end_date}" : "暂无说明截止时间";
                 $content['data'] = array(
                     'keyword1' => array(
                         'value' => "您订阅的游戏 《{$goods_info_arr[$goods_id]['name_cn']}》发生变化",
@@ -678,7 +686,7 @@ class HandlePs4Game extends BaseService
                         'value' => $end_date_str,
                     ),
                     'keyword3' => array(
-                        'value' => "折扣力度: {$goods_list[$goods_id]['plus_discount']}%" ,
+                        'value' => "-{$goods_list[$goods_id]['plus_discount']}%" ,
                     ),
                 );
                 $content['page'] = 'pages/detail/detail?goods_id=' . $goods_id;
@@ -747,81 +755,45 @@ class HandlePs4Game extends BaseService
 
     public function game()
     {
-        $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where `parent_np_title_id` = '' or `parent_np_title_id` = `np_title_id` order by is_main desc, rating_total desc) as t group by np_title_id order by id desc ";
         $db = pdo();
-        $db->tableName = 'game';
-        $list = $db->query($sql);
+//        $page = 1;
+//        $limit = 100;
+//        while (true) {
+//            $start = ($page - 1) * $limit;
+//            $limit_str = " limit {$start}, {$limit}";
+//            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id <> '' order by is_main desc, rating_total desc) as t  group by np_communication_id order by id desc";
+//            $sql = $sql . $limit_str;
+//            $list = $db->query($sql);
+//            if (empty($list)) {
+//                break;
+//            }
+//            $this->initGameByNpCommunicationId($list);
+//            if ($this->hasError()) {
+//                break;
+//            }
+//            $page++;
+//        }
 
-        if (empty($list)) {
-            return false;
-        }
-
-        foreach ($list as $goods)
-        {
-//            $goods['name'] = str_replace('™', '', $goods['name']);
-//            $goods['name'] = str_replace('®', '', $goods['name']);
-            $game = array(
-                'np_title_id' => $goods['np_title_id'],
-                'main_goods_id' => $goods['goods_id'],
-                'origin_name' => $goods['name'],
-                'display_name' => $goods['name_cn'],
-                'other_name' => '',
-                'cover_image' => $goods['cover_image_cn'],
-                'other_platform' => '',
-                'developer' => $goods['developer'],
-                'publisher' => $goods['publisher'],
-                'franchises' => '',
-                'genres' => $goods['genres'],
-                'release_date' => $goods['min_release_date'],
-                'description' => $goods['description_cn'],
-                'language_support' => $goods['language_support_cn'],
-                'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
-                'screenshots' => $goods['screenshots'],
-                'videos' => $goods['preview'],
-                'rating_total' => $goods['rating_total'],
-                'rating_score' => $goods['rating_score'],
-                'status' => $goods['status'],
-                'create_time' => time(),
-            );
-
-            $db->startTrans();
-            try {
-                $where['np_title_id'] = $goods['np_title_id'];
-                $info = $db->find($where);
-                if (empty($info)) {
-                    $game_id = $this->generateGameId();
-                    if ($this->hasError()) {
-                        log::e('generate_game_id_fial:' . json_encode($this->getError()));
-                        continue;
-                    }
-                    $game['game_id'] = $game_id;
-                    $db->insert($game);
-                } else {
-                    $game_id = $info['game_id'];
-                    $data['main_goods_id'] = $game['main_goods_id'];
-                    $data['cover_image'] = $game['cover_image'];
-                    $data['language_support'] = $game['language_support'];
-                    $data['is_chinese_support'] = $game['is_chinese_support'];
-                    $data['rating_total'] = $game['rating_total'];
-                    $data['rating_score'] = $game['rating_score'];
-                    $data['screenshots'] = $game['screenshots'];
-                    $data['videos'] = $game['videos'];
-                    $data['status'] = $game['status'];
-                    $data['update_time'] = time();
-
-                    $db->update($data, $where);
-                }
-                $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
-                $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
-            } catch (Exception $e) {
-                $db->rollBackTrans();
-                echo "写入数据库出现异常：{$e->getMessage()}";
+        $page = 1;
+        $limit = 100;
+        while (true) {
+            $start = ($page - 1) * $limit;
+            $limit_str = " limit {$start}, {$limit}";
+            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id = '' and (`parent_np_title_id` = '' or `parent_np_title_id` = `np_title_id`) order by is_main desc, rating_total desc) as t group by np_title_id order by id desc ";
+            $sql = $sql . $limit_str;
+            $list = $db->query($sql);
+            if (empty($list)) {
+                break;
             }
-            $db->commitTrans();
-
-            echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
+            $this->initGameByNpTitleId($list);
+            if ($this->hasError()) {
+                break;
+            }
+            $page++;
         }
+
     }
+
 
     public function generateGameId()
     {
@@ -923,16 +895,17 @@ class HandlePs4Game extends BaseService
         $service = s('Common');
         $i       = 1;
         foreach ($list as $info) {
-            if (empty($info['goods_id'])) {
+            $goods_id = $info['goods_id'];
+            if (empty($goods_id)) {
                 continue;
             }
-            $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $info['goods_id'];
+            $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $goods_id;
             $response = $service->curl($url);
             if ($service->hasError()) {
                 echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
                 $service->flushError();
 
-                $url = 'https://store.playstation.com/valkyrie-api/en/US/19/resolve/' . $info['goods_id'];
+                $url = 'https://store.playstation.com/valkyrie-api/en/US/19/resolve/' . $goods_id;
                 $response = $service->curl($url);
                 if ($service->hasError()) {
                     echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
@@ -942,8 +915,8 @@ class HandlePs4Game extends BaseService
             }
             $data = json_decode($response, true);
             if (empty($data['included'])) {
-                echo "商品 {$info['goods_id']} 远端媒体数据更新失败 \r\n";
-                var_dump($data);
+                echo "商品 {$goods_id} 远端媒体数据更新失败 \r\n";
+                var_dump($response);
                 continue;
             }
 
@@ -965,10 +938,10 @@ class HandlePs4Game extends BaseService
             !empty($media['screenshots']) && $update['screenshots'] = $media['screenshots'];
 
             if (empty($update)) {
-                echo "商品 {$info['goods_id']} 无可用数据更新 \r\n";
+                echo "商品 {$goods_id} 无可用数据更新 \r\n";
                 continue;
             }
-            $db->update($update, array('goods_id' => $info['goods_id']));
+            $db->update($update, array('goods_id' => $goods_id));
 
             echo "商品 {$info['goods_id']} 媒体数据更新完成 $i \r\n";
             $i++;
@@ -976,5 +949,173 @@ class HandlePs4Game extends BaseService
 
         $date = date('Y-m-d H:i:s', time());
         echo "{$date} 脚本处理完毕";
+    }
+
+    protected function initGameByNpTitleId($list)
+    {
+        if (empty($list)) {
+            return $this->setError('param_list_is_empty');
+        }
+
+        $db = pdo();
+        $db->tableName = 'game';
+
+        foreach ($list as $goods)
+        {
+            //            $goods['name'] = str_replace('™', '', $goods['name']);
+            //            $goods['name'] = str_replace('®', '', $goods['name']);
+            $game_id = 0;
+            $game = array(
+                'np_title_id' => $goods['np_title_id'],
+                'np_communication_id' => $goods['np_communication_id'],
+                'main_goods_id' => $goods['goods_id'],
+                'origin_name' => $goods['name'],
+                'display_name' => $goods['name_cn'],
+                'other_name' => '',
+                'cover_image' => $goods['cover_image_cn'],
+                'other_platform' => '',
+                'developer' => $goods['developer'],
+                'publisher' => $goods['publisher'],
+                'franchises' => '',
+                'genres' => $goods['genres'],
+                'release_date' => $goods['min_release_date'],
+                'description' => $goods['description_cn'],
+                'language_support' => $goods['language_support_cn'],
+                'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
+                'screenshots' => $goods['screenshots'],
+                'videos' => $goods['preview'],
+                'rating_total' => $goods['rating_total'],
+                'rating_score' => $goods['rating_score'],
+                'origin' => 2,
+                'status' => 1,
+                'create_time' => time(),
+            );
+
+            $db->startTrans();
+            try {
+                $where['np_title_id'] = $goods['np_title_id'];
+                $info = $db->find($where);
+                if (empty($info)) {
+                    $game_id = $this->generateGameId();
+                    if ($this->hasError()) {
+                        log::e('generate_game_id_fial:' . json_encode($this->getError()));
+                        continue;
+                    }
+                    $game['game_id'] = $game_id;
+                    $db->insert($game);
+
+                    $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
+                    $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
+                } else {
+                    $game_id = $info['game_id'];
+                    $data['main_goods_id'] = $game['main_goods_id'];
+                    $data['np_communication_id'] = $game['np_communication_id'];
+                    $data['origin'] = 2;
+//                    $data['cover_image'] = $game['cover_image'];
+//                    $data['language_support'] = $game['language_support'];
+//                    $data['is_chinese_support'] = $game['is_chinese_support'];
+//                    $data['rating_total'] = $game['rating_total'];
+//                    $data['rating_score'] = $game['rating_score'];
+//                    $data['screenshots'] = $game['screenshots'];
+//                    $data['videos'] = $game['videos'];
+//                    $data['status'] = $game['status'];
+                    $data['update_time'] = time();
+
+                    $db->update($data, $where);
+                }
+            } catch (Exception $e) {
+                $db->rollBackTrans();
+                echo "写入数据库出现异常：{$e->getMessage()}";
+                continue;
+            }
+            $db->commitTrans();
+
+            echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
+        }
+
+    }
+
+    protected function initGameByNpCommunicationId($list)
+    {
+        if (empty($list)) {
+            return $this->setError('param_list_is_empty');
+        }
+
+        $db = pdo();
+        $db->tableName = 'game';
+
+        foreach ($list as $goods)
+        {
+            //            $goods['name'] = str_replace('™', '', $goods['name']);
+            //            $goods['name'] = str_replace('®', '', $goods['name']);
+            $game_id = 0;
+            $game = array(
+                'np_title_id' => $goods['np_title_id'],
+                'np_communication_id' => $goods['np_communication_id'],
+                'main_goods_id' => $goods['goods_id'],
+                'origin_name' => $goods['name'],
+                'display_name' => $goods['name_cn'],
+                'other_name' => '',
+                'cover_image' => $goods['cover_image_cn'],
+                'other_platform' => '',
+                'developer' => $goods['developer'],
+                'publisher' => $goods['publisher'],
+                'franchises' => '',
+                'genres' => $goods['genres'],
+                'release_date' => $goods['min_release_date'],
+                'description' => $goods['description_cn'],
+                'language_support' => $goods['language_support_cn'],
+                'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
+                'screenshots' => $goods['screenshots'],
+                'videos' => $goods['preview'],
+                'rating_total' => $goods['rating_total'],
+                'rating_score' => $goods['rating_score'],
+                'status' => 1,
+                'origin' => 1,
+                'create_time' => time(),
+            );
+
+            $db->startTrans();
+            try {
+                $where['np_communication_id'] = $goods['np_communication_id'];
+                $where['np_title_id'] = $goods['np_title_id'];
+                $info = $db->find($where);
+                if (empty($info)) {
+                    $game_id = $this->generateGameId();
+                    if ($this->hasError()) {
+                        log::e('generate_game_id_fial:' . json_encode($this->getError()));
+                        continue;
+                    }
+                    $game['game_id'] = $game_id;
+                    $db->insert($game);
+
+                    $sql = "update goods set game_id = ? where np_title_id = ?";
+                    $db->exec($sql, $game_id, $goods['np_communication_id']);
+                } else {
+                    $game_id = $info['game_id'];
+                    $data['main_goods_id'] = $game['main_goods_id'];
+                    $data['origin'] = 1;
+//                    $data['cover_image'] = $game['cover_image'];
+//                    $data['language_support'] = $game['language_support'];
+//                    $data['is_chinese_support'] = $game['is_chinese_support'];
+//                    $data['rating_total'] = $game['rating_total'];
+//                    $data['rating_score'] = $game['rating_score'];
+//                    $data['screenshots'] = $game['screenshots'];
+//                    $data['videos'] = $game['videos'];
+//                    $data['status'] = $game['status'];
+                    $data['update_time'] = time();
+
+                    $db->update($data, $where);
+                }
+            } catch (Exception $e) {
+                $db->rollBackTrans();
+                echo "写入数据库出现异常：{$e->getMessage()}";
+                continue;
+            }
+            $db->commitTrans();
+
+            echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
+        }
+
     }
 }

@@ -363,7 +363,7 @@ class GoodsService extends BaseService
         }
 
         $db = pdo();
-        $sql = "select * from goods where game_id = {$game_id} and goods_id <> '{$goods_id}' and status = 1";
+        $sql = "select * from goods where game_id = {$game_id} and goods_id <> '{$goods_id}' and status > 0";
         $goods_list = $db->query($sql);
 
         if (empty($goods_list)) {

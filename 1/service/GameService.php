@@ -158,31 +158,31 @@ class GameService extends GoodsService
 
         switch ($type) {
             case 'fresh':
-                $where = "release_date <= UNIX_TIMESTAMP() and (mc_score <> NULL or rating_total >= 10)";
+                $where = "release_date <= UNIX_TIMESTAMP() and (mc_score <> NULL or rating_total >= 10) and status = 1";
                 $sort = 'release_date desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($game_list);
                 break;
             case 'latest':
-                $where = "release_date <= UNIX_TIMESTAMP()";
+                $where = "release_date <= UNIX_TIMESTAMP() and status = 1";
                 $sort = 'release_date desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($game_list);
                 break;
             case 'coming':
-                $where = "release_date > UNIX_TIMESTAMP()";
+                $where = "release_date > UNIX_TIMESTAMP() and status = 1";
                 $sort = 'release_date asc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($game_list);
                 break;
             case 'best':
-                $where = "1=1";
+                $where = "status = 1";
                 $sort = 'mc_score desc, rating_score desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($game_list);
                 break;
             case 'hot':
-                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP()";
+                $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status = 1";
                 $sort = 'rating_total desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
                 $list = $this->completeGoodsPrice($game_list);
@@ -199,7 +199,7 @@ class GameService extends GoodsService
             return $this->setError('param_name_is_empty', '请填写游戏名称');
         }
 
-        $where = "(origin_name LIKE '%{$name}%' OR display_name LIKE '%{$name}%')";
+        $where = "(origin_name LIKE '%{$name}%' OR display_name LIKE '%{$name}%') and status = 1";
         $sort = "rating_total DESC";
         $game_list = $this->getGameListFromDb($where, array(), $sort, $page);
         $list = $this->completeGoodsPrice($game_list);
