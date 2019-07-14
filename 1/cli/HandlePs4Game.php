@@ -756,23 +756,23 @@ class HandlePs4Game extends BaseService
     public function game()
     {
         $db = pdo();
-//        $page = 1;
-//        $limit = 100;
-//        while (true) {
-//            $start = ($page - 1) * $limit;
-//            $limit_str = " limit {$start}, {$limit}";
-//            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id <> '' order by is_main desc, rating_total desc) as t  group by np_communication_id order by id desc";
-//            $sql = $sql . $limit_str;
-//            $list = $db->query($sql);
-//            if (empty($list)) {
-//                break;
-//            }
-//            $this->initGameByNpCommunicationId($list);
-//            if ($this->hasError()) {
-//                break;
-//            }
-//            $page++;
-//        }
+        $page = 1;
+        $limit = 100;
+        while (true) {
+            $start = ($page - 1) * $limit;
+            $limit_str = " limit {$start}, {$limit}";
+            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id <> '' order by is_main desc, rating_total desc) as t  group by np_communication_id order by id desc";
+            $sql = $sql . $limit_str;
+            $list = $db->query($sql);
+            if (empty($list)) {
+                break;
+            }
+            $this->initGameByNpCommunicationId($list);
+            if ($this->hasError()) {
+                break;
+            }
+            $page++;
+        }
 
         $page = 1;
         $limit = 100;
@@ -1003,9 +1003,6 @@ class HandlePs4Game extends BaseService
                     }
                     $game['game_id'] = $game_id;
                     $db->insert($game);
-
-                    $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
-                    $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
                 } else {
                     $game_id = $info['game_id'];
                     $data['main_goods_id'] = $game['main_goods_id'];
@@ -1023,6 +1020,8 @@ class HandlePs4Game extends BaseService
 
                     $db->update($data, $where);
                 }
+                $sql = "update goods set game_id = ? where np_title_id = ? or parent_np_title_id = ?";
+                $db->exec($sql, $game_id, $goods['np_title_id'], $goods['np_title_id']);
             } catch (Exception $e) {
                 $db->rollBackTrans();
                 echo "写入数据库出现异常：{$e->getMessage()}";
@@ -1088,9 +1087,6 @@ class HandlePs4Game extends BaseService
                     }
                     $game['game_id'] = $game_id;
                     $db->insert($game);
-
-                    $sql = "update goods set game_id = ? where np_title_id = ?";
-                    $db->exec($sql, $game_id, $goods['np_communication_id']);
                 } else {
                     $game_id = $info['game_id'];
                     $data['main_goods_id'] = $game['main_goods_id'];
@@ -1107,6 +1103,8 @@ class HandlePs4Game extends BaseService
 
                     $db->update($data, $where);
                 }
+                $sql = "update goods set game_id = ? where np_communication_id = ?";
+                $db->exec($sql, $game_id, $goods['np_communication_id']);
             } catch (Exception $e) {
                 $db->rollBackTrans();
                 echo "写入数据库出现异常：{$e->getMessage()}";
