@@ -31,7 +31,7 @@ class CommonService extends BaseService
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 //        curl_setopt($ch, CURLOPT_SSLVERSION, 2);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 //        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 //        curl_setopt($ch, CURLOPT_MAXREDIRS, 10);//设置请求最多重定向的次数
 

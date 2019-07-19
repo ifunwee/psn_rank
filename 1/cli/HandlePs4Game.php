@@ -667,7 +667,7 @@ class HandlePs4Game extends BaseService
                         'value' => count($info) <= 3 ? "您订阅的游戏{$game_str}发生变化" : "您订阅的游戏{$game_str}等发生变化",
                     ),
                     'keyword2' => array(
-                        'value' => '折扣于' . date('Y-m-d') . '开始',
+                        'value' => '于' . date('Y-m-d') . '开始',
                     ),
                     'keyword3' => array(
                         'value' => "点击查看更多详情" ,
@@ -1040,6 +1040,7 @@ class HandlePs4Game extends BaseService
             return $this->setError('param_list_is_empty');
         }
 
+        $redis = r('psn_redis');
         $db = pdo();
         $db->tableName = 'game';
 
@@ -1111,7 +1112,10 @@ class HandlePs4Game extends BaseService
                 continue;
             }
             $db->commitTrans();
-
+            $redis_key = redis_key('relation_game_trophy', $game_id);
+            $redis->set($redis_key, $goods['np_communication_id']);
+            $redis_key = redis_key('relation_trophy_game', $goods['np_communication_id']);
+            $redis->set($redis_key, $game_id);
             echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
         }
 

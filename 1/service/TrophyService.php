@@ -3,19 +3,28 @@ class TrophyService extends BaseService
 {
     public function getUserTrophyTitleList($psn_id, $sort_type, $page = 1)
     {
+        $redis = r('psn_redis');
         $data = $this->getUserTrophyTitleListFromDb($psn_id, $sort_type, $page);
         $list = array();
         if (empty($data)) {
-            $result['list'] = $list;
-            return $result;
+            if (empty($data)) {
+                $result['list'] = $list;
+                $result['sync_time'] = '';
+                $result['sync_time_whole'] = '';
+                return $result;
+            }
         }
 
         $np_communication_id_arr = array_column($data, 'np_communication_id');
         $trophy_info = $this->getTrophyTitleInfoFromDb($np_communication_id_arr);
         foreach ($data as $item) {
             $np_communication_id = $item['np_communication_id'];
+            $redis_key = redis_key('relation_trophy_game', $np_communication_id);
+            $game_id = $redis->get($redis_key);
+
             $info = array(
-                'np_communication_id' => $np_communication_id,
+                'game_id' => $game_id,
+                'np_communication' => $np_communication_id,
                 'name' => $trophy_info[$np_communication_id]['name'],
                 'detail' => $trophy_info[$np_communication_id]['detail'],
                 'icon_url' => $trophy_info[$np_communication_id]['icon_url'],
@@ -297,5 +306,10 @@ class TrophyService extends BaseService
         }
 
         return $result;
+    }
+
+    public function getUserTrophyDetail($psn_id, $np_communication_id)
+    {
+
     }
 }

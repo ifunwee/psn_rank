@@ -169,6 +169,10 @@ class ProfileService extends BaseService
             return json_decode($json, true);
         }
 
+        if (empty($psn_id)) {
+            $psn_id = 'funwee';
+        }
+
         $data = $this->getUserGameDetail($psn_id, $game_id, 1);
         return $data;
     }
@@ -306,7 +310,7 @@ class ProfileService extends BaseService
             'fields' => '@default,trophyTitleSmallIconUrl,trophyGroupSmallIconUrl',
             'returnUrlScheme' => 'http',
             'iconSize' => 'm',
-            'comparedUser' => $psn_id,
+//            'comparedUser' => $psn_id,
         );
         $param_str = http_build_query($param);
         $url = $url . $param_str;
