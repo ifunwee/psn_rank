@@ -30,7 +30,32 @@ class HandleTrophy extends BaseService
                 echo "{$time}: {$psn_id} 同步奖杯头衔信息成功，偏移值{$offset} \r\n";
             }
         }
+    }
 
+    public function syncTrophyDetail()
+    {
+        $redis = r('psn_redis');
+        $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
+        /** @var  $service TrophyDetailService */
+        $service = s('TrophyDetail');
+
+        while ($redis->lLen($sync_mq_key) > 0) {
+            $json = $redis->rPop($sync_mq_key);
+            $data = json_decode($json);
+            $psn_id = $data['psn_id'];
+            $np_communication_id_arr = $data['np_communication_id'];
+
+            foreach ($np_communication_id_arr as $np_communication_id) {
+                $service->syncUserTrophyDetail($psn_id, $np_communication_id);
+                if ($service->hasError()) {
+                    $service->flushError();
+                    continue;
+                }
+            }
+
+            $time = date('Y-m-d H:i:s');
+            echo "{$time}: {$psn_id} 同步奖杯详情成功 \r\n";
+        }
     }
 
     public function addTrophyDetail()

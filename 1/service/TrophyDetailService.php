@@ -10,6 +10,10 @@ class TrophyDetailService extends BaseService
 
     public function getUserTrophyDetail($psn_id, $np_communication_id)
     {
+        $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
+        $sync_time = $redis->get($sync_time_key);
+
         $list = $this->getUserTrophyDetailFromDb($psn_id, $np_communication_id);
         if (empty($list)) {
             return array();
@@ -45,6 +49,7 @@ class TrophyDetailService extends BaseService
             'no_earn' => array_values(array_filter($no_earn)),
             'first_trophy_earn' => $earn_time_arr ? min($earn_time_arr) : '',
             'last_trophy_earn' =>  $earn_time_arr ? max($earn_time_arr) : '',
+            'sysc_time' => $sync_time ? : '',
         );
 
         return $user_progress;
@@ -67,7 +72,7 @@ class TrophyDetailService extends BaseService
         }
 
         foreach ($group as $info) {
-            $this->syncUserTrophyProgress($psn_id, $np_communication_id, $info['group_id']);
+            $this->syncUserTrophyProgressFromSony($psn_id, $np_communication_id, $info['group_id']);
             if ($this->hasError()) {
                 log::e("syncUserTrophyProgress fail: {$psn_id} {$np_communication_id} {$info['group_id']} ".json_encode($this->getError()));
                 continue;
@@ -192,7 +197,7 @@ class TrophyDetailService extends BaseService
         }
     }
 
-    public function syncUserTrophyProgress($psn_id, $np_communication_id, $group_id)
+    public function syncUserTrophyProgressFromSony($psn_id, $np_communication_id, $group_id)
     {
         empty($group_id) && $group_id = 'default';
         $service = s('SonyAuth');

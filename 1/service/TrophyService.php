@@ -85,9 +85,17 @@ class TrophyService extends BaseService
             }
         }
 
-        $this->syncUserTrophyTitleListFromSony($psn_id, 0, 30);
+        $list = $this->syncUserTrophyTitleListFromSony($psn_id, 0, 30);
         if ($this->hasError()) {
             return $this->getError();
+        }
+
+        if (!empty($list)) {
+            $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
+            $data['psn_id'] = $psn_id;
+            $np_communication_id_arr = array_column($list, 'np_communication_id');
+            $data['np_communication_id_arr'] = $np_communication_id_arr;
+            $redis->lPush($sync_mq_key, json_encode($data));
         }
 
         $now = time();
@@ -105,9 +113,9 @@ class TrophyService extends BaseService
 
         switch ($sort_type) {
             case 'time':
-                $sort = 'update_time desc'; break;
+                $sort = 'last_play_time desc'; break;
             case 'progress':
-                $sort = 'progress desc, update_time desc'; break;
+                $sort = 'progress desc, last_play_time desc'; break;
             default:
                 $sort = 'update_time desc'; break;
         }
@@ -195,27 +203,18 @@ class TrophyService extends BaseService
             }
 
             $info['user_trophy'] = array(
-                'psn_id' => $item['compared_user']['online_id'],
                 'progress' => $item['compared_user']['progress'],
                 'bronze' => $item['compared_user']['earned_trophies']['bronze'],
                 'silver' => $item['compared_user']['earned_trophies']['silver'],
                 'gold' => $item['compared_user']['earned_trophies']['gold'],
                 'platinum' => $item['compared_user']['earned_trophies']['platinum'],
-                'update_time' => $item['compared_user']['last_update_date'],
+                'last_play_time' => $item['compared_user']['last_update_date'],
             );
 
             $list[] = $info;
 
-            $update = array(
-                'progress' => $info['user_trophy']['progress'],
-                'bronze' => $info['user_trophy']['bronze'],
-                'silver' => $info['user_trophy']['silver'],
-                'gold' => $info['user_trophy']['gold'],
-                'platinum' => $info['user_trophy']['platinum'],
-                'update_time' => $info['user_trophy']['update_time'],
-            );
 
-            $this->saveUserTrophyTitle($info['user_trophy']['psn_id'], $info['np_communication_id'], $update);
+            $this->saveUserTrophyTitle($item['compared_user']['online_id'], $item['np_communication_id'], $info['user_trophy']);
             if ($this->hasError()) {
                 Log::n($this->getErrorCode() . $this->getErrorMsg());
                 $this->flushError();
@@ -236,21 +235,30 @@ class TrophyService extends BaseService
             return $this->setError('param_np_communication_id_is_empty');
         }
 
-        $progress = $data['progress'] ? : 0;
-        $bronze = $data['bronze'] ? : 0;
-        $silver = $data['silver'] ? : 0;
-        $gold = $data['gold'] ? : 0;
-        $platinum = $data['platinum'] ? : 0;
-        $update_time = $data['update_time'] ? : 0;
-
-        $db = pdo();
-        $now = time();
-        $sql = "insert into trophy_title_user (psn_id, np_communication_id, progress, bronze, silver, gold, platinum, create_time, update_time)
-                values('{$psn_id}', '{$np_communication_id}', {$progress}, {$bronze}, {$silver}, {$gold}, {$platinum}, {$now}, {$update_time})
-                on duplicate key update progress={$progress}, bronze={$bronze}, silver={$silver}, gold={$gold}, platinum={$platinum}, update_time={$update_time}";
-
         try {
-            $db->exec($sql);
+            $db = pdo();
+            $db->tableName = 'trophy_title_user';
+            $where['psn_id'] = $psn_id;
+            $where['np_communication_id'] = $np_communication_id;
+            $info = $db->find($where);
+
+            $data = array(
+                'psn_id' => $psn_id,
+                'np_communication_id' => $np_communication_id,
+                'progress' => $data['progress'] ? : 0,
+                'bronze' => $data['bronze'] ? : 0,
+                'silver' => $data['silver'] ? : 0,
+                'gold' => $data['gold'] ? : 0,
+                'platinum' => $data['platinum'] ? : 0,
+                'last_play_time' => $data['last_play_time'] ? : 0,
+            );
+            if (empty($info)) {
+                $data['create_time'] = time();
+                $db->insert($data);
+            } else {
+                $data['update_time'] = time();
+                $db->update($data, $where);
+            }
         } catch (Exception $e) {
             log::e("db_error: {$e->getCode()} {$e->getMessage()}");
             return $this->setError('db_error', '数据库执行异常');
@@ -260,26 +268,33 @@ class TrophyService extends BaseService
 
     public function saveTrophyTitleInfo($trophy)
     {
-        $db = pdo();
-        $now = time();
         try {
-            $np_communication_id = $trophy['np_communication_id'];
-            $name = addslashes($trophy['name']);
-            $detail = addslashes($trophy['detail']);
-            $icon_url = $trophy['icon_url'];
-            $small_icon_url = $trophy['small_icon_url'];
-            $platform = $trophy['platform'];
-            $has_trophy_group = (int)$trophy['has_trophy_group'];
-            $bronze = (int)$trophy['defined_trophy']['bronze'];
-            $silver = (int)$trophy['defined_trophy']['silver'];
-            $gold = (int)$trophy['defined_trophy']['gold'];
-            $platinum = (int)$trophy['defined_trophy']['platinum'];
+            $db = pdo();
+            $db->tableName = 'trophy_title';
+            $where['np_communication_id'] = $trophy['np_communication_id'];
+            $info = $db->find($where);
 
-            $sql = "insert into trophy_title (np_communication_id, name, detail, icon_url, small_icon_url, platform, has_trophy_group, bronze, silver, gold, platinum, create_time) 
-                    values('{$np_communication_id}', '{$name}', '{$detail}', '{$icon_url}', '{$small_icon_url}', '{$platform}', {$has_trophy_group}, {$bronze}, {$silver}, {$gold}, {$platinum}, {$now}) 
-                    on duplicate key update name = '{$name}',detail = '{$detail}', icon_url = '{$icon_url}', small_icon_url = '{$small_icon_url}', platform = '{$platform}', has_trophy_group = {$has_trophy_group}, bronze = {$bronze}, silver = {$silver}, gold = {$gold}, platinum = {$platinum}, update_time = {$now}";
+            $data = array(
+                'np_communication_id' => $trophy['np_communication_id'],
+                'name' => $trophy['name'],
+                'detail' => $trophy['detail'],
+                'icon_url' => $trophy['icon_url'],
+                'small_icon_url' => $trophy['small_icon_url'],
+                'platform' => $trophy['platform'],
+                'has_trophy_group' => (int)$trophy['has_trophy_group'],
+                'bronze' => (int)$trophy['defined_trophy']['bronze'],
+                'silver' => (int)$trophy['defined_trophy']['silver'],
+                'gold' => (int)$trophy['defined_trophy']['gold'],
+                'platinum' => (int)$trophy['defined_trophy']['platinum'],
+            );
 
-            $db->exec($sql);
+            if (empty($info)) {
+                $data['create_time'] = time();
+                $db->insert($data);
+            } else {
+                $data['update_time'] = time();
+                $db->update($data, $where);
+            }
         } catch (Exception $e) {
             log::e("写入数据库出现异常: {$e->getMessage()}");
             return $this->setError($e->getCode(), $e->getMessage());
