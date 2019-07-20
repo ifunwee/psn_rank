@@ -214,6 +214,38 @@ class ProfileInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    /**
+     * 获取用户psn资料信息
+     */
+    public function getPsnInfo()
+    {
+        $psn_id = getParam('psn_id');
+
+
+        $service      = s('Profile');
+        $info = $service->getPsnInfo($psn_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
+    public function syncPsnInfo()
+    {
+        $psn_id = getParam('psn_id');
+
+        $service      = s('Profile');
+        $info = $service->syncPsnInfo($psn_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($info);
+    }
+
     public function test()
     {
         $json = file_get_contents("php://input");

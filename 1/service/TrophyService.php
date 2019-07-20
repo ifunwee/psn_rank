@@ -4,13 +4,18 @@ class TrophyService extends BaseService
     public function getUserTrophyTitleList($psn_id, $sort_type, $page = 1)
     {
         $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
+        $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
+        $sync_time = $redis->get($sync_time_key);
+        $sync_time_whole = $redis->get($sync_time_whole_key);
+
         $data = $this->getUserTrophyTitleListFromDb($psn_id, $sort_type, $page);
         $list = array();
         if (empty($data)) {
             if (empty($data)) {
                 $result['list'] = $list;
-                $result['sync_time'] = '';
-                $result['sync_time_whole'] = '';
+                $result['sync_time'] = $sync_time;
+                $result['sync_time_whole'] = $sync_time_whole;
                 return $result;
             }
         }
@@ -20,7 +25,7 @@ class TrophyService extends BaseService
         foreach ($data as $item) {
             $np_communication_id = $item['np_communication_id'];
             $redis_key = redis_key('relation_trophy_game', $np_communication_id);
-            $game_id = $redis->get($redis_key);
+            $game_id = $redis->get($redis_key) ? : '';
 
             $info = array(
                 'game_id' => $game_id,
@@ -51,12 +56,6 @@ class TrophyService extends BaseService
 
             $list[] = $info;
         }
-
-        $redis = r('psn_redis');
-        $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
-        $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
-        $sync_time = $redis->get($sync_time_key);
-        $sync_time_whole = $redis->get($sync_time_whole_key);
 
         $result['list'] = $list;
         $result['sync_time'] = $sync_time ? : '';

@@ -10,10 +10,6 @@ class TrophyDetailService extends BaseService
 
     public function getUserTrophyDetail($psn_id, $np_communication_id)
     {
-        $redis = r('psn_redis');
-        $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
-        $sync_time = $redis->get($sync_time_key);
-
         $list = $this->getUserTrophyDetailFromDb($psn_id, $np_communication_id);
         if (empty($list)) {
             return array();
@@ -43,13 +39,17 @@ class TrophyDetailService extends BaseService
             $no_earn[] = $trophy_no_earn;
         }
 
+        $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
+        $sync_time = $redis->get($sync_time_key);
+
         $user_progress = array(
             'complete' => "{$trophy_earn_num}/{$trophy_total_num}",
             'earn' => array_values(array_filter($earn)),
             'no_earn' => array_values(array_filter($no_earn)),
             'first_trophy_earn' => $earn_time_arr ? min($earn_time_arr) : '',
             'last_trophy_earn' =>  $earn_time_arr ? max($earn_time_arr) : '',
-            'sysc_time' => $sync_time ? : '',
+            'sync_time' => $sync_time ? : '',
         );
 
         return $user_progress;
@@ -67,12 +67,12 @@ class TrophyDetailService extends BaseService
         }
 
         $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
-        if (empty($group)) {
+        if ($this->hasError()) {
             return $this->setError('sync_trophy_group_fail');
         }
 
         foreach ($group as $info) {
-            $this->syncUserTrophyProgressFromSony($psn_id, $np_communication_id, $info['group_id']);
+            $this->syncUserTrophyProgress($psn_id, $np_communication_id, $info['group_id']);
             if ($this->hasError()) {
                 log::e("syncUserTrophyProgress fail: {$psn_id} {$np_communication_id} {$info['group_id']} ".json_encode($this->getError()));
                 continue;
@@ -136,17 +136,18 @@ class TrophyDetailService extends BaseService
         foreach ($data['trophy_groups'] as $item)
         {
             $info = array(
-                'np_communication_id' => $item['np_communication_id'],
-                'group_id' => $item['group_id'],
-                'name' => $item['name'],
-                'detail' => $item['detail'],
-                'icon_url' => $item['icon_url'],
-                'small_icon_url' => $item['small_icon_url'],
-                'bronze' => (int)$item['defined_trophy']['bronze'],
-                'silver' => (int)$item['defined_trophy']['silver'],
-                'gold' => (int)$item['defined_trophy']['gold'],
-                'platinum' => (int)$item['defined_trophy']['platinum'],
+                'np_communication_id' => $np_communication_id,
+                'group_id' => $item['trophy_group_id'],
+                'name' => $item['trophy_group_name'],
+                'detail' => $item['trophy_group_detail'],
+                'icon_url' => $item['trophy_group_icon_url'],
+                'small_icon_url' => $item['trophy_group_small_icon_url'],
+                'bronze' => (int)$item['defined_trophies']['bronze'],
+                'silver' => (int)$item['defined_trophies']['silver'],
+                'gold' => (int)$item['defined_trophies']['gold'],
+                'platinum' => (int)$item['defined_trophies']['platinum'],
             );
+
 
             $group[] = $info;
 
@@ -197,7 +198,7 @@ class TrophyDetailService extends BaseService
         }
     }
 
-    public function syncUserTrophyProgressFromSony($psn_id, $np_communication_id, $group_id)
+    public function syncUserTrophyProgress($psn_id, $np_communication_id, $group_id)
     {
         empty($group_id) && $group_id = 'default';
         $service = s('SonyAuth');
@@ -277,13 +278,6 @@ class TrophyDetailService extends BaseService
         try {
             $db  = pdo();
             $db->tableName = 'trophy_info';
-            $where['np_communication_id'] = $np_communication_id;
-            $where['group_id'] = $group_id;
-            $exist = $db->find($where);
-
-            if ($exist) {
-                return true;
-            }
 
             $data = array(
                 'np_communication_id' => $np_communication_id,
@@ -368,25 +362,32 @@ class TrophyDetailService extends BaseService
         $trophy_progress = $db->findAll($condition);
 
         $trophy_progress_hash = array();
-        foreach ($trophy_progress as $item) {
-            $trophy_progress_hash[$item['trophy_id']] = array(
-                'is_earn' => $item['is_earn'],
-                'earn_time' => $item['earn_time'],
-            );
+        if (!empty($trophy_progress)) {
+            foreach ($trophy_progress as $item) {
+                $trophy_progress_hash[$item['trophy_id']] = array(
+                    'is_earn' => $item['is_earn'] ? : '0',
+                    'earn_time' => $item['earn_time'] ? : '0',
+                );
+            }
         }
 
         $trophy_list_hash = array();
-        foreach ($trophy_list as $item) {
-            $item['is_earn'] = $trophy_progress_hash[$item['trophy_id']]['is_earn'];
-            $item['earn_time'] = $trophy_progress_hash[$item['trophy_id']]['earn_time'];
-            unset($item['id'],$item['create_time'],$item['update_time']);
-            $trophy_list_hash[$item['group_id']][] = $item;
+        if (!empty($trophy_list)) {
+            foreach ($trophy_list as $item) {
+                $item['is_earn'] = $trophy_progress_hash[$item['trophy_id']]['is_earn'] ? : '0';
+                $item['earn_time'] = $trophy_progress_hash[$item['trophy_id']]['earn_time'] ? : '0';
+                unset($item['id'],$item['create_time'],$item['update_time']);
+                $trophy_list_hash[$item['group_id']][] = $item;
+            }
         }
 
-        foreach ($group_list as &$item) {
-            $item['trophy'] = $trophy_list_hash[$item['group_id']];
+
+        if (!empty($group_list)) {
+            foreach ($group_list as &$item) {
+                $item['trophy'] = $trophy_list_hash[$item['group_id']];
+            }
+            unset($item);
         }
-        unset($item);
 
         return $group_list;
     }

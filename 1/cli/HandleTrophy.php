@@ -41,9 +41,12 @@ class HandleTrophy extends BaseService
 
         while ($redis->lLen($sync_mq_key) > 0) {
             $json = $redis->rPop($sync_mq_key);
-            $data = json_decode($json);
+            $data = json_decode($json, true);
             $psn_id = $data['psn_id'];
-            $np_communication_id_arr = $data['np_communication_id'];
+            $np_communication_id_arr = $data['np_communication_id_arr'];
+
+            $time = date('Y-m-d H:i:s');
+            echo "{$time}: {$psn_id} 同步奖杯详情开始 \r\n";
 
             foreach ($np_communication_id_arr as $np_communication_id) {
                 $service->syncUserTrophyDetail($psn_id, $np_communication_id);
@@ -51,10 +54,11 @@ class HandleTrophy extends BaseService
                     $service->flushError();
                     continue;
                 }
+                echo " {$np_communication_id} 奖杯同步完成 \r\n";
             }
 
             $time = date('Y-m-d H:i:s');
-            echo "{$time}: {$psn_id} 同步奖杯详情成功 \r\n";
+            echo "{$time}: {$psn_id} 同步奖杯详情结束 \r\n";
         }
     }
 

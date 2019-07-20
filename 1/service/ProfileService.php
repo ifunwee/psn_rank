@@ -17,6 +17,133 @@ class ProfileService extends BaseService
         $refresh && $this->cache_mode = false;
     }
 
+    public function getPsnInfo($psn_id)
+    {
+        $info = $this->getPsnInfoFromDb($psn_id);
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+
+        $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_profile', $psn_id);
+        $sync_time = $redis->get($sync_time_key);
+        $info['sync_time'] = $sync_time ? : '';
+
+        return $info;
+    }
+
+    public function syncPsnInfo($psn_id)
+    {
+        $info = $this->syncPsnInfoFromSony($psn_id);
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+
+        $redis = r('psn_redis');
+        $now = time();
+        $sync_time_key = redis_key('sync_time_profile', $psn_id);
+        $redis->set($sync_time_key, $now);
+        $info['sync_time'] = $now;
+
+        return $info;
+    }
+
+    public function getPsnInfoFromDb($psn_id)
+    {
+        $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_profile', $psn_id);
+        $sync_time = $redis->get($sync_time_key);
+
+        $db = pdo();
+        $db->tableName = 'profile';
+        $where['psn_id'] = $psn_id;
+        $info = $db->find($where);
+        $info['sync_time'] = $sync_time ? : '';
+        unset($info['id'], $info['create_time'], $info['update_time']);
+
+        return $info;
+    }
+
+    public function syncPsnInfoFromSony($psn_id)
+    {
+        $service = s('SonyAuth');
+        $info = $service->getApiAccessToken();
+        if ($service->hasError()) {
+            return $service->setError($service->getError());
+        }
+
+        $url = "https://cn-prof.np.community.playstation.net/userProfile/v1/users/{$psn_id}/profile2?";
+        $param = array(
+            'languagesUserdLanguageSet' => 'set4',
+            'fields' => 'onlineId,avatarUrls,plus,trophySummary(@default,progress,earnedTrophies)',
+            'profilePictureSizes' => 'm',
+            'avatarSizes' => 'm',
+            'titleIconSize' => 's',
+        );
+        $param_str = http_build_query($param);
+        $url = $url . $param_str;
+        $header = array(
+            "Origin: https://id.sonyentertainmentnetwork.com",
+            "Authorization:{$info['token_type']} {$info['access_token']}"
+        );
+
+        $service = s('Common');
+        $json = $service->curl($url, $header);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
+        $json = $service->uncamelizeJson($json);
+
+        if (empty($json)) {
+            return $this->setError('get_psn_info_fail');
+        }
+
+        $data = json_decode($json, true);
+        if ($data['error']) {
+            return $this->setError($data['error']['code'], $data['error']['message']);
+        }
+
+        $info = array(
+            'psn_id' => $data['profile']['online_id'],
+            'avatar' => $data['profile']['avatar_urls'][0]['avatar_url'],
+            'is_plus' => $data['profile']['plus'],
+            'level' => $data['profile']['trophy_summary']['level'] ? : 0,
+            'progress' => $data['profile']['trophy_summary']['progress'] ? : 0,
+            'platinum' => $data['profile']['trophy_summary']['earned_trophies']['platinum'] ? : 0,
+            'gold' => $data['profile']['trophy_summary']['earned_trophies']['gold'] ? : 0,
+            'silver' => $data['profile']['trophy_summary']['earned_trophies']['silver'] ? : 0,
+            'bronze' => $data['profile']['trophy_summary']['earned_trophies']['bronze'] ? : 0,
+        );
+
+        $this->savePsnInfo($info);
+        if ($this->hasError()) {
+            return $this->getError();
+        }
+
+        return $info;
+    }
+
+    protected function savePsnInfo($info)
+    {
+        try {
+            $db = pdo();
+            $db->tableName = 'profile';
+            $where['psn_id'] = $info['psn_id'];
+            $result = $db->find($where);
+
+            if (empty($result)) {
+                $info['create_time'] = time();
+                $db->insert($info);
+            } else {
+                $info['update_time'] = time();
+                $db->update($info, $where);
+            }
+        } catch (Exception $e) {
+            log::e("写入数据库出现异常: {$e->getMessage()}");
+            return $this->setError('db_error');
+        }
+    }
+
     /**
      * 根据psn_id获取用户信息
      *
