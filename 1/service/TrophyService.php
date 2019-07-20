@@ -6,8 +6,8 @@ class TrophyService extends BaseService
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
         $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
-        $sync_time = $redis->get($sync_time_key);
-        $sync_time_whole = $redis->get($sync_time_whole_key);
+        $sync_time = $redis->get($sync_time_key) ? : null;
+        $sync_time_whole = $redis->get($sync_time_whole_key) ? : null;
 
         $data = $this->getUserTrophyTitleListFromDb($psn_id, $sort_type, $page);
         $list = array();
@@ -58,8 +58,8 @@ class TrophyService extends BaseService
         }
 
         $result['list'] = $list;
-        $result['sync_time'] = $sync_time ? : '';
-        $result['sync_time_whole'] = $sync_time_whole ? : '';
+        $result['sync_time'] = $sync_time;
+        $result['sync_time_whole'] = $sync_time_whole;
         return $result;
     }
 
@@ -68,8 +68,8 @@ class TrophyService extends BaseService
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
         $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
-        $sync_time = $redis->get($sync_time_key);
-        $sync_time_whole = $redis->get($sync_time_whole_key);
+        $sync_time = $redis->get($sync_time_key) ? : null;
+        $sync_time_whole = $redis->get($sync_time_whole_key) ? : null;
 
         $tips = '同步成功';
         if (empty($sync_time) || time() - (int)$sync_time_whole > 86400 * 10) {

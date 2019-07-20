@@ -41,7 +41,7 @@ class TrophyDetailService extends BaseService
 
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
-        $sync_time = $redis->get($sync_time_key);
+        $sync_time = $redis->get($sync_time_key) ? : null;
 
         $user_progress = array(
             'complete' => "{$trophy_earn_num}/{$trophy_total_num}",
@@ -49,7 +49,7 @@ class TrophyDetailService extends BaseService
             'no_earn' => array_values(array_filter($no_earn)),
             'first_trophy_earn' => $earn_time_arr ? min($earn_time_arr) : '',
             'last_trophy_earn' =>  $earn_time_arr ? max($earn_time_arr) : '',
-            'sync_time' => $sync_time ? : '',
+            'sync_time' => $sync_time,
         );
 
         return $user_progress;
@@ -60,7 +60,7 @@ class TrophyDetailService extends BaseService
     {
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
-        $sync_time = $redis->get($sync_time_key);
+        $sync_time = $redis->get($sync_time_key) ? : null;
 
         if (time() - (int)$sync_time <= 600) {
             return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
