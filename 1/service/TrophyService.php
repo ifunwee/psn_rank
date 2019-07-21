@@ -125,7 +125,7 @@ class TrophyService extends BaseService
         return $list;
     }
 
-    private function getTrophyTitleListFromDb($where, $field = array(), $sort = '', $page = 1, $limit = 10)
+    private function getTrophyTitleListFromDb($where, $field = array(), $sort = '', $page = 1, $limit = 20)
     {
         $where = $where ? $where : '1=1';
         $field = $field ? implode(',', $field) : '*';

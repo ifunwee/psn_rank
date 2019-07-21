@@ -596,8 +596,6 @@ class ProfileService extends BaseService
         return true;
     }
 
-
-
     public function getPsnineTips($game_id, $trophy_id)
     {
         $start = (int)substr($game_id, 4, 5);
