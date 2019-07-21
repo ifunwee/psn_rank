@@ -15,44 +15,18 @@ class TrophyDetailService extends BaseService
             return array();
         }
 
-        $trophy_earn_num = $trophy_total_num = 0;
-        $earn = $no_earn = $earn_time_arr = array();
-        foreach ($list as $item) {
-            $trophy_earn = $trophy_no_earn = array();
-            foreach ($item['trophy'] as &$info) {
-                if ((int)$info['is_earn'] == 1) {
-                    $trophy_earn['group_id'] = $item['group_id'];
-                    $trophy_earn['name'] = $item['name'];
-                    //获得奖杯的时间集合
-                    $earn_time_arr[] = $info['earn_time'];
-                    $trophy_earn['trophy'][] = $info;
-                    $trophy_earn_num++;
-                } else {
-                    $trophy_no_earn['group_id'] = $item['group_id'];
-                    $trophy_no_earn['name'] = $item['name'];
-                    $trophy_no_earn['trophy'][] = $info;
-                }
-                $trophy_total_num++;
-            }
-
-            $earn[] = $trophy_earn;
-            $no_earn[] = $trophy_no_earn;
-        }
+        $service = s('Trophy');
+        $overview = $service->getTrophyTitleInfoFromDb($np_communication_id);
 
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
 
-        $user_progress = array(
-            'complete' => "{$trophy_earn_num}/{$trophy_total_num}",
-            'earn' => array_values(array_filter($earn)),
-            'no_earn' => array_values(array_filter($no_earn)),
-            'first_trophy_earn' => $earn_time_arr ? min($earn_time_arr) : '',
-            'last_trophy_earn' =>  $earn_time_arr ? max($earn_time_arr) : '',
-            'sync_time' => $sync_time,
-        );
+        $data['overview'] = $overview;
+        $data['list'] = $list;
+        $data['sync_time'] = $sync_time;
 
-        return $user_progress;
+        return $data;
 
     }
 

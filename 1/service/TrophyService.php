@@ -313,17 +313,15 @@ class TrophyService extends BaseService
             $list = $db->findAll($where, $field);
             foreach ($list as $trophy_title) {
                 $result[$trophy_title['np_communication_id']] = $trophy_title;
+                unset($trophy_title['id'], $trophy_title['create_time'], $trophy_title['update_time']);
             }
         } else {
             $where = "np_communication_id = '{$np_communication_id}'";
             $result = $db->find($where, $field);
+            unset($result['id'], $result['create_time'], $result['update_time']);
         }
 
         return $result;
     }
 
-    public function getUserTrophyDetail($psn_id, $np_communication_id)
-    {
-
-    }
 }
