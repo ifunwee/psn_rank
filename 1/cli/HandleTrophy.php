@@ -51,6 +51,7 @@ class HandleTrophy extends BaseService
             foreach ($np_communication_id_arr as $np_communication_id) {
                 $service->syncUserTrophyDetail($psn_id, $np_communication_id);
                 if ($service->hasError()) {
+                    echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} \r\n";
                     $service->flushError();
                     continue;
                 }

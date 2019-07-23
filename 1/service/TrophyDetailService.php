@@ -369,4 +369,18 @@ class TrophyDetailService extends BaseService
 
         return $group_list;
     }
+
+    protected function getTrophyInfoFromCache($np_communication_id, $trophy_id)
+    {
+        $redis = r('psn_redis');
+        $trophy_info_key = redis_key('psn_trophy_info', $np_communication_id, $trophy_id);
+        return $redis->hGetAll($trophy_info_key);
+    }
+
+    protected function setTrophyInfoToCache($np_communication_id, $trophy_id, $info)
+    {
+        $redis = r('psn_redis');
+        $trophy_info_key = redis_key('psn_trophy_info', $np_communication_id, $trophy_id);
+        $redis->hMset($trophy_info_key, $info);
+    }
 }

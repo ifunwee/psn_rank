@@ -10,7 +10,7 @@ class TrophyInterface extends BaseInterface
         $sort_type = getParam('sort_type');
         $page = getParam('page', 1);
 
-        $service      = s('Trophy');
+        $service      = s('TrophyTitle');
         $result = $service->getUserTrophyTitleList($psn_id, $sort_type, $page);
 
         if ($service->hasError()) {
@@ -27,7 +27,7 @@ class TrophyInterface extends BaseInterface
     {
         $psn_id = getParam('psn_id');
 
-        $service      = s('Trophy');
+        $service      = s('TrophyTitle');
         $result = $service->syncUserTrophyTitle($psn_id);
 
         if ($service->hasError()) {
@@ -60,6 +60,23 @@ class TrophyInterface extends BaseInterface
 
         $service      = s('TrophyDetail');
         $result = $service->syncUserTrophyDetail($psn_id, $np_communication_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
+    }
+
+
+    public function getTrophyTips()
+    {
+        $np_communication_id = getParam('np_communication_id');
+        $trophy_id = getParam('trophy_id');
+        $page = getParam('page', 1);
+
+        $service      = s('TrophyTips');
+        $result = $service->getTrophyTips($np_communication_id, $trophy_id, $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());

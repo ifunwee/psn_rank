@@ -1,5 +1,5 @@
 <?php
-class TrophyService extends BaseService
+class TrophyTitleService extends BaseService
 {
     public function getUserTrophyTitleList($psn_id, $sort_type , $page = 1)
     {
