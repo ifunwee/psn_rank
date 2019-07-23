@@ -1,8 +1,12 @@
 <?php
 class TrophyService extends BaseService
 {
-    public function getUserTrophyTitleList($psn_id, $sort_type, $page = 1)
+    public function getUserTrophyTitleList($psn_id, $sort_type , $page = 1)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_is_empty', '缺少参数');
+        }
+
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
         $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
@@ -12,12 +16,10 @@ class TrophyService extends BaseService
         $data = $this->getUserTrophyTitleListFromDb($psn_id, $sort_type, $page);
         $list = array();
         if (empty($data)) {
-            if (empty($data)) {
-                $result['list'] = $list;
-                $result['sync_time'] = $sync_time;
-                $result['sync_time_whole'] = $sync_time_whole;
-                return $result;
-            }
+            $result['list'] = $list;
+            $result['sync_time'] = $sync_time;
+            $result['sync_time_whole'] = $sync_time_whole;
+            return $result;
         }
 
         $np_communication_id_arr = array_column($data, 'np_communication_id');
@@ -302,6 +304,10 @@ class TrophyService extends BaseService
 
     public function getTrophyTitleInfoFromDb($np_communication_id, $field = array())
     {
+        if (empty($np_communication_id)) {
+            return $this->setError('param_np_communication_id_is_empty');
+        }
+
         $db = pdo();
         $db->tableName = 'trophy_title';
         $field = $field ? implode(',', $field) : '*';

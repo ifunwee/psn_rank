@@ -10,17 +10,21 @@ class TrophyDetailService extends BaseService
 
     public function getUserTrophyDetail($psn_id, $np_communication_id)
     {
+        $redis = r('psn_redis');
+        $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
+        $sync_time = $redis->get($sync_time_key) ? : null;
+
         $list = $this->getUserTrophyDetailFromDb($psn_id, $np_communication_id);
         if (empty($list)) {
-            return array();
+            $data['overview'] = null;
+            $data['list'] = null;
+            $data['sync_time'] = null;
+
+            return $data;
         }
 
         $service = s('Trophy');
         $overview = $service->getTrophyTitleInfoFromDb($np_communication_id);
-
-        $redis = r('psn_redis');
-        $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
-        $sync_time = $redis->get($sync_time_key) ? : null;
 
         $data['overview'] = $overview;
         $data['list'] = $list;
