@@ -114,4 +114,19 @@ class TrophyTipsService extends BaseService
         $service = s('TrophyDetail');
         $service->setTrophyInfoToCache($np_communication_id, $trophy_id, $info);
     }
+
+    public function getTrophyTipsNumByNpCommId($np_communication_id)
+    {
+        $db = pdo();
+        $db->tableName = 'trophy_tips';
+        $sql = "select trophy_id,count(trophy_id) as tips_num from trophy_tips where np_communication_id = '{$np_communication_id}' group by trophy_id";
+        $list = $db->query($sql);
+        $data = null;
+        foreach ($list as $item) {
+            $data[$item['trophy_id']] = $item['tips_num'];
+        }
+
+        return $data;
+
+    }
 }

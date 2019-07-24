@@ -5,8 +5,8 @@ class HandleTrophy extends BaseService
     {
         $redis = r('psn_redis');
         $sync_mq_key = redis_key('mq_sync_user_trophy_title');
-        /** @var  $service TrophyService */
-        $service = s('Trophy');
+        /** @var  $service TrophyTitleService */
+        $service = s('TrophyTitle');
 
         while ($redis->lLen($sync_mq_key) > 0) {
             $psn_id = $redis->rPop($sync_mq_key);

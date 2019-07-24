@@ -23,7 +23,7 @@ class TrophyDetailService extends BaseService
             return $data;
         }
 
-        $service = s('Trophy');
+        $service = s('TrophyTitle');
         $overview = $service->getTrophyTitleInfoFromDb($np_communication_id);
 
         $data['overview'] = $overview;
@@ -351,9 +351,14 @@ class TrophyDetailService extends BaseService
 
         $trophy_list_hash = array();
         if (!empty($trophy_list)) {
+            $service = s('TrophyTips');
+            $trophy_tips = $service->getTrophyTipsNumByNpCommId($np_communication_id);
+
+            unset($item);
             foreach ($trophy_list as $item) {
                 $item['is_earn'] = $trophy_progress_hash[$item['trophy_id']]['is_earn'] ? : '0';
                 $item['earn_time'] = $trophy_progress_hash[$item['trophy_id']]['earn_time'] ? : '0';
+                $item['tips_num'] = $trophy_tips[$item['trophy_id']]['tips_num'] ? : 0;
                 unset($item['id'],$item['create_time'],$item['update_time']);
                 $trophy_list_hash[$item['group_id']][] = $item;
             }
