@@ -358,7 +358,7 @@ class TrophyDetailService extends BaseService
             foreach ($trophy_list as $item) {
                 $item['is_earn'] = $trophy_progress_hash[$item['trophy_id']]['is_earn'] ? : '0';
                 $item['earn_time'] = $trophy_progress_hash[$item['trophy_id']]['earn_time'] ? : '0';
-                $item['tips_num'] = $trophy_tips[$item['trophy_id']]['tips_num'] ? : 0;
+                $item['tips_num'] = $trophy_tips[$item['trophy_id']] ? : 0;
                 unset($item['id'],$item['create_time'],$item['update_time']);
                 $trophy_list_hash[$item['group_id']][] = $item;
             }
