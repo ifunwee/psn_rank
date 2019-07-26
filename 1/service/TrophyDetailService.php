@@ -40,20 +40,27 @@ class TrophyDetailService extends BaseService
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
 
+        $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
+
         if (time() - (int)$sync_time <= 600) {
             return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
         }
 
         $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
         if ($this->hasError()) {
+            $data['psn_id'] = $psn_id;
+            $data['np_communication_id'] = $np_communication_id;
+            $redis->lPush($sync_mq_key, json_encode($data));
             return $this->setError($this->getError());
         }
 
         foreach ($group as $info) {
             $this->syncUserTrophyProgress($psn_id, $np_communication_id, $info['group_id']);
             if ($this->hasError()) {
-                log::e("syncUserTrophyProgress fail: {$psn_id} {$np_communication_id} {$info['group_id']} ".json_encode($this->getError()));
-                continue;
+                $data['psn_id'] = $psn_id;
+                $data['np_communication_id'] = $np_communication_id;
+                $redis->lPush($sync_mq_key, json_encode($data));
+                return $this->setError($this->getError());
             }
         }
 

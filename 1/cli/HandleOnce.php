@@ -50,4 +50,29 @@ class HandleOnce
         }
     }
 
+    public function warmTrophyData()
+    {
+        $db = pdo();
+        $sql = "select psn_id from user where psn_id <> ''";
+        $list = $db->query($sql);
+
+        $profile_service = s('Profile');
+        $trophy_title_service = s('TrophyTitle');
+        foreach ($list as $info) {
+            $profile_service->syncPsnInfo($info['psn_id']);
+            if ($profile_service->hasError()) {
+                echo "sync_psn_info_fail:{$profile_service->getErrorCode()} {$profile_service->getErrorMsg()} \r\n";
+                $profile_service->flushError();
+            }
+            $trophy_title_service->syncUserTrophyTitle($info['psn_id']);
+            if ($trophy_title_service->hasError()) {
+                echo "sync_trophy_title_fail:{$trophy_title_service->getErrorCode()} {$trophy_title_service->getErrorMsg()} \r\n";
+                $trophy_title_service->flushError();
+            }
+
+            echo "{$info['psn_id']} 开始同步数据 \r\n";
+        }
+
+    }
+
 }

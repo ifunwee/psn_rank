@@ -93,12 +93,13 @@ class ProfileService extends BaseService
             return $this->setError($service->getError());
         }
         $json = $service->uncamelizeJson($json);
+        $data = json_decode($json, true);
 
-        if (empty($json)) {
-            return $this->setError('get_psn_info_fail');
+        if (!is_array($data)) {
+            log::e(var_export($json, true));
+            return $this->setError('get_psn_info_fail', '无法解析的数据格式');
         }
 
-        $data = json_decode($json, true);
         if ($data['error']) {
             return $this->setError($data['error']['code'], $data['error']['message']);
         }
@@ -117,7 +118,7 @@ class ProfileService extends BaseService
 
         $this->savePsnInfo($info);
         if ($this->hasError()) {
-            return $this->getError();
+            return $this->setError($this->getError());
         }
 
         return $info;
