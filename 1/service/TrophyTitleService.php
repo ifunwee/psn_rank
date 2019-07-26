@@ -94,9 +94,16 @@ class TrophyTitleService extends BaseService
         if (!empty($list)) {
             $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
             $data['psn_id'] = $psn_id;
-            $np_communication_id_arr = array_column($list, 'np_communication_id');
-            $data['np_communication_id_arr'] = $np_communication_id_arr;
-            $redis->lPush($sync_mq_key, json_encode($data));
+            foreach ($list as $trophy) {
+                $redis_key = redis_key('trophy_title_user', $psn_id, $trophy['np_communication_id']);
+                $origin_progress = $redis->hGet($redis_key, 'progress') ? : 0;
+                if ($trophy['user_trophy']['progress'] > $origin_progress) {
+                    $data['np_communication_id'] = $trophy['np_communication_id'];
+                    $redis->lPush($sync_mq_key, json_encode($data));
+                } else {
+                    log::n("{$psn_id} {$trophy['np_communication_id']} 进度未改变，不推入同步详情任务");
+                }
+            }
         }
 
         $now = time();
@@ -253,6 +260,8 @@ class TrophyTitleService extends BaseService
                 'platinum' => $data['platinum'] ? : 0,
                 'last_play_time' => $data['last_play_time'] ? : 0,
             );
+
+            $cache = $data;
             if (empty($info)) {
                 $data['create_time'] = time();
                 $db->insert($data);
@@ -264,6 +273,10 @@ class TrophyTitleService extends BaseService
             log::e("db_error: {$e->getCode()} {$e->getMessage()}");
             return $this->setError('db_error', '数据库执行异常');
         }
+
+        $redis = r();
+        $redis_key = redis_key('trophy_title_user', $psn_id, $np_communication_id);
+        $redis->hMset($redis_key, $cache);
 
     }
 
@@ -288,6 +301,7 @@ class TrophyTitleService extends BaseService
                 'gold' => (int)$trophy['defined_trophy']['gold'],
                 'platinum' => (int)$trophy['defined_trophy']['platinum'],
             );
+            $cache = $data;
 
             if (empty($info)) {
                 $data['create_time'] = time();
@@ -300,6 +314,10 @@ class TrophyTitleService extends BaseService
             log::e("写入数据库出现异常: {$e->getMessage()}");
             return $this->setError($e->getCode(), $e->getMessage());
         }
+
+        $redis = r();
+        $redis_key = redis_key('trophy_title', $trophy['np_communication_id']);
+        $redis->hMset($redis_key, $cache);
     }
 
     public function getTrophyTitleInfoFromDb($np_communication_id, $field = array())

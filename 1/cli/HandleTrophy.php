@@ -43,20 +43,18 @@ class HandleTrophy extends BaseService
             $json = $redis->rPop($sync_mq_key);
             $data = json_decode($json, true);
             $psn_id = $data['psn_id'];
-            $np_communication_id_arr = $data['np_communication_id_arr'];
+            $np_communication_id = $data['np_communication_id'];
 
             $time = date('Y-m-d H:i:s');
             echo "{$time}: {$psn_id} 同步奖杯详情开始 \r\n";
 
-            foreach ($np_communication_id_arr as $np_communication_id) {
-                $service->syncUserTrophyDetail($psn_id, $np_communication_id);
-                if ($service->hasError()) {
-                    echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} \r\n";
-                    $service->flushError();
-                    continue;
-                }
-                echo " {$np_communication_id} 奖杯同步完成 \r\n";
+            $service->syncUserTrophyDetail($psn_id, $np_communication_id);
+            if ($service->hasError()) {
+                echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} \r\n";
+                $service->flushError();
+                continue;
             }
+            echo " {$np_communication_id} 奖杯同步完成 \r\n";
 
             $time = date('Y-m-d H:i:s');
             echo "{$time}: {$psn_id} 同步奖杯详情结束 \r\n";
