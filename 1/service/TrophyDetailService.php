@@ -46,7 +46,7 @@ class TrophyDetailService extends BaseService
 
         $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
         if ($this->hasError()) {
-            return $this->setError('sync_trophy_group_fail');
+            return $this->setError($this->getError());
         }
 
         foreach ($group as $info) {
