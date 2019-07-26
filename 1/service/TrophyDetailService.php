@@ -40,9 +40,9 @@ class TrophyDetailService extends BaseService
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
 
-        if (time() - (int)$sync_time <= 600) {
-            return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
-        }
+//        if (time() - (int)$sync_time <= 600) {
+//            return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
+//        }
 
         $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
         if ($this->hasError()) {
@@ -218,7 +218,6 @@ class TrophyDetailService extends BaseService
 
         $list = array();
 
-
         foreach ($data['trophies'] as $item) {
             $info = array(
                 'trophy_id' => $item['trophy_id'],
@@ -241,6 +240,9 @@ class TrophyDetailService extends BaseService
             }
 
             $psn_id = $item['compared_user']['online_id'];
+            if (empty($psn_id)) {
+                continue;
+            }
             $info['np_communication_id'] = $np_communication_id;
             $info['group_id'] = $group_id;
             $info['trophy_id'] = $item['trophy_id'];
@@ -271,6 +273,8 @@ class TrophyDetailService extends BaseService
                 'earned_rate' =>$info['earned_rate'],
             );
 
+            $cache = $data;
+
             $where['np_communication_id'] = $np_communication_id;
             $where['group_id'] = $group_id;
             $where['trophy_id'] = $info['trophy_id'];
@@ -286,8 +290,12 @@ class TrophyDetailService extends BaseService
         } catch (Exception $e) {
             log::e("写入数据库出现异常: {$e->getMessage()}");
 
-            return $this->setError($e->getCode(), $e->getMessage());
+            return $this->setError('db_error');
         }
+
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_info', $np_communication_id, $info['trophy_id']);
+        $redis->hMset($redis_key, $cache);
     }
 
     public function saveUserTrophyInfo($psn_id, $info)
@@ -320,8 +328,17 @@ class TrophyDetailService extends BaseService
         } catch (Exception $e) {
             log::e("写入数据库出现异常: {$e->getMessage()}");
 
-            return $this->setError($e->getCode(), $e->getMessage());
+            return $this->setError('db_error');
         }
+
+        $cache = array(
+            'group_id' => $data['group_id'],
+            'is_earn' => $data['is_earn'],
+            'earn_time' => $data['earn_time'],
+        );
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_info_user', $psn_id, $info['np_communication_id'], $info['trophy_id']);
+        $redis->hMset($redis_key, $cache);
     }
 
     public function getUserTrophyDetailFromDb($psn_id, $np_communication_id)

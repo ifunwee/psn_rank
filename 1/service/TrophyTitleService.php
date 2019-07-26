@@ -261,7 +261,6 @@ class TrophyTitleService extends BaseService
                 'last_play_time' => $data['last_play_time'] ? : 0,
             );
 
-            $cache = $data;
             if (empty($info)) {
                 $data['create_time'] = time();
                 $db->insert($data);
@@ -274,10 +273,17 @@ class TrophyTitleService extends BaseService
             return $this->setError('db_error', '数据库执行异常');
         }
 
-        $redis = r();
+        $cache = array(
+            'progress' => $data['progress'] ? : 0,
+            'bronze' => $data['bronze'] ? : 0,
+            'silver' => $data['silver'] ? : 0,
+            'gold' => $data['gold'] ? : 0,
+            'platinum' => $data['platinum'] ? : 0,
+            'last_play_time' => $data['last_play_time'] ? : 0,
+        );
+        $redis = r('psn_redis');
         $redis_key = redis_key('trophy_title_user', $psn_id, $np_communication_id);
         $redis->hMset($redis_key, $cache);
-
     }
 
     public function saveTrophyTitleInfo($trophy)
@@ -315,7 +321,7 @@ class TrophyTitleService extends BaseService
             return $this->setError($e->getCode(), $e->getMessage());
         }
 
-        $redis = r();
+        $redis = r('psn_redis');
         $redis_key = redis_key('trophy_title', $trophy['np_communication_id']);
         $redis->hMset($redis_key, $cache);
     }
