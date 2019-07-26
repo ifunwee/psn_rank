@@ -50,7 +50,7 @@ class HandleTrophy extends BaseService
 
             $service->syncUserTrophyDetail($psn_id, $np_communication_id);
             if ($service->hasError()) {
-                echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} \r\n";
+                echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} {$service->getErrorMsg()} \r\n";
                 $service->flushError();
                 continue;
             }
