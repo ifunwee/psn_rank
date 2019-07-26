@@ -40,9 +40,9 @@ class TrophyDetailService extends BaseService
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
 
-//        if (time() - (int)$sync_time <= 600) {
-//            return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
-//        }
+        if (time() - (int)$sync_time <= 600) {
+            return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
+        }
 
         $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
         if ($this->hasError()) {

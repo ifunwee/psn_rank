@@ -94,16 +94,25 @@ class TrophyTitleService extends BaseService
         if (!empty($list)) {
             $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
             $data['psn_id'] = $psn_id;
-            foreach ($list as $trophy) {
-                $redis_key = redis_key('trophy_title_user', $psn_id, $trophy['np_communication_id']);
-                $origin_progress = $redis->hGet($redis_key, 'progress') ? : 0;
-                if ($trophy['user_trophy']['progress'] > $origin_progress) {
+            if (empty($sync_time)) {
+                //首次同步则不对比奖杯 直接推入奖杯详情同步队列
+                foreach ($list as $trophy) {
                     $data['np_communication_id'] = $trophy['np_communication_id'];
                     $redis->lPush($sync_mq_key, json_encode($data));
-                } else {
-                    log::n("{$psn_id} {$trophy['np_communication_id']} 进度未改变，不推入同步详情任务");
+                }
+            } else {
+                foreach ($list as $trophy) {
+                    $redis_key = redis_key('trophy_title_user', $psn_id, $trophy['np_communication_id']);
+                    $origin_progress = $redis->hGet($redis_key, 'progress') ? : 0;
+                    if ($trophy['user_trophy']['progress'] > $origin_progress) {
+                        $data['np_communication_id'] = $trophy['np_communication_id'];
+                        $redis->lPush($sync_mq_key, json_encode($data));
+                    } else {
+                        log::n("{$psn_id} {$trophy['np_communication_id']} 进度未改变，不推入同步详情任务");
+                    }
                 }
             }
+
         }
 
         $now = time();
