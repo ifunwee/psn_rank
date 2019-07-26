@@ -45,19 +45,15 @@ class HandleTrophy extends BaseService
             $psn_id = $data['psn_id'];
             $np_communication_id = $data['np_communication_id'];
 
-            $time = date('Y-m-d H:i:s');
-            echo "{$time}: {$psn_id} 同步奖杯详情开始 \r\n";
-
             $service->syncUserTrophyDetail($psn_id, $np_communication_id);
             if ($service->hasError()) {
                 echo "{$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} {$service->getErrorMsg()} \r\n";
                 $service->flushError();
                 continue;
             }
-            echo " {$np_communication_id} 奖杯同步完成 \r\n";
 
             $time = date('Y-m-d H:i:s');
-            echo "{$time}: {$psn_id} 同步奖杯详情结束 \r\n";
+            echo "{$time}: {$psn_id} {$np_communication_id}同步奖杯详情结束 \r\n";
         }
     }
 
