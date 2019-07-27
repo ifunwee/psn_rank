@@ -15,6 +15,6 @@ fi
 while true
 do
     echo $(date '+%s') > ${pid_dir}/$$
-    /app/bin/php ../../cli.php v8ejrnh1289uvfg1e4kjda9f1u v1 HandleTrophy syncTrophyDetail >> log/HandleTrophy_syncTrophyDetail.log 2>&1
+    /app/bin/php ../cli.php v8ejrnh1289uvfg1e4kjda9f1u v1 HandlePs4Game failPrice >> log/handle_fail_price.log 2>&1
     sleep "$sleep_time"
 done
