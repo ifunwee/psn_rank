@@ -19,6 +19,10 @@ class ProfileService extends BaseService
 
     public function getPsnInfo($psn_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
         $info = $this->getPsnInfoFromDb($psn_id);
         if ($this->hasError()) {
             return $this->setError($this->getError());
@@ -34,6 +38,10 @@ class ProfileService extends BaseService
 
     public function syncPsnInfo($psn_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
         $info = $this->syncPsnInfoFromSony($psn_id);
         if ($this->hasError()) {
             return $this->setError($this->getError());
@@ -66,6 +74,10 @@ class ProfileService extends BaseService
 
     public function syncPsnInfoFromSony($psn_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {

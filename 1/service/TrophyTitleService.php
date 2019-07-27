@@ -67,6 +67,10 @@ class TrophyTitleService extends BaseService
 
     public function syncUserTrophyTitle($psn_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_title_part', $psn_id);
         $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);

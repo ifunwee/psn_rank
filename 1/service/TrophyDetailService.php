@@ -10,6 +10,14 @@ class TrophyDetailService extends BaseService
 
     public function getUserTrophyDetail($psn_id, $np_communication_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
+        if (empty($np_communication_id)) {
+            return $this->setError('param_np_communication_id_empty', '缺少参数');
+        }
+
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
@@ -36,6 +44,13 @@ class TrophyDetailService extends BaseService
 
     public function syncUserTrophyDetail($psn_id, $np_communication_id)
     {
+        if (empty($psn_id)) {
+            return $this->setError('param_psn_id_empty', '缺少参数');
+        }
+
+        if (empty($np_communication_id)) {
+            return $this->setError('param_np_communication_id_empty', '缺少参数');
+        }
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
