@@ -271,7 +271,9 @@ class TrophyDetailService extends BaseService
             $info['is_earn'] = $item['compared_user']['earned'] === true ? 1 : 0;
             $info['earn_time'] = $item['compared_user']['earned_date'] ? : 0;
 
-            $this->saveUserTrophyInfo($psn_id, $info);
+            if ((int)$info['is_earn'] == 1) {
+                $this->saveUserTrophyInfo($psn_id, $info);
+            }
         }
     }
 

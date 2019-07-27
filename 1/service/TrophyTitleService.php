@@ -116,7 +116,7 @@ class TrophyTitleService extends BaseService
                     }
                 }
             }
-
+            log::i("{$psn_id} 顺利进入奖杯详情同步流程");
         }
 
         $now = time();
