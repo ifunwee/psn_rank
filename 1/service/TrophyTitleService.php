@@ -65,7 +65,7 @@ class TrophyTitleService extends BaseService
         return $result;
     }
 
-    public function syncUserTrophyTitle($psn_id)
+    public function syncUserTrophyTitle($psn_id, $sync_detail = 0)
     {
         if (empty($psn_id)) {
             return $this->setError('param_psn_id_empty', '缺少参数');
@@ -98,7 +98,7 @@ class TrophyTitleService extends BaseService
         if (!empty($list)) {
             $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
             $data['psn_id'] = $psn_id;
-            if (empty($sync_time)) {
+            if (empty($sync_time) || $sync_detail == 1) {
                 //首次同步则不对比奖杯 直接推入奖杯详情同步队列
                 foreach ($list as $trophy) {
                     $data['np_communication_id'] = $trophy['np_communication_id'];

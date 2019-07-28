@@ -48,6 +48,10 @@ class HandleTrophy extends BaseService
             $service->syncUserTrophyDetail($psn_id, $np_communication_id);
             if ($service->hasError()) {
                 echo "{$psn_id} {$np_communication_id} 奖杯同步异常: {$service->getErrorCode()} {$service->getErrorMsg()} \r\n";
+                if ($service->getErrorCode() == 2138635 && $service->getErrorMsg() == 'Rate limit exceeded') {
+                    sleep(180);
+                    break;
+                }
                 $service->flushError();
                 continue;
             }
