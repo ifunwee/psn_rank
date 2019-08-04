@@ -81,7 +81,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-prof.np.community.playstation.net/userProfile/v1/users/{$psn_id}/profile2?";
@@ -177,7 +177,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-prof.np.community.playstation.net/userProfile/v1/users/{$psn_id}/profile2?";
@@ -230,7 +230,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";
@@ -441,7 +441,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups?";
@@ -505,7 +505,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$game_id}/trophyGroups/{$version_id}/trophies?";
@@ -774,7 +774,7 @@ class ProfileService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/apps/trophyTitles?";

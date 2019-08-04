@@ -176,7 +176,7 @@ class TrophyTitleService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles?";

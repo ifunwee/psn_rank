@@ -67,7 +67,7 @@ class SonyAuthService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'A29MIKHhkHmyncDaHzgkiuSgg1a7POJPPwgK08TvzhD1Tg3HXVCWj7ttdRNcAlIh';
+        $npsso = 'IpDnYv6F30lkMTrj3TL1jaq0KOiYR6RzJM11oIT1IREaPYsVsIX7pCXfyF9kkGpK323';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';

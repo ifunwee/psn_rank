@@ -108,7 +108,7 @@ class TrophyDetailService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://hk-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$np_communication_id}/trophyGroups?";
@@ -216,7 +216,7 @@ class TrophyDetailService extends BaseService
         $service = s('SonyAuth');
         $info = $service->getApiAccessToken();
         if ($service->hasError()) {
-            return $service->setError($service->getError());
+            return $this->setError($service->getError());
         }
 
         $url = "https://cn-tpy.np.community.playstation.net/trophy/v1/trophyTitles/{$np_communication_id}/trophyGroups/{$group_id}/trophies?";
