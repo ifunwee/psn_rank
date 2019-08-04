@@ -817,43 +817,7 @@ class HandlePs4Game extends BaseService
         }
     }
 
-    public function syncFollowListToCache()
-    {
-        $db = pdo();
-        $db->tableName = 'follow';
-        $where['status'] = 1;
-        $page = 1;
-        $limit = 1000;
-        $redis = r('psn_redis');
 
-        $is_loop = true;
-        while ($is_loop) {
-            $start = ($page - 1) * $limit;
-            $limit_str = "{$start}, {$limit}";
-            $list = $db->findAll($where, '*', 'id desc', $limit_str);
-
-            if (empty($list)) {
-                $is_loop = false;
-            } else {
-                foreach ($list as $info) {
-                    $account_follow_key = redis_key('account_follow', $info['open_id']);
-                    $goods_follow_key = redis_key('goods_follow', $info['goods_id']);
-                    if ($info['goods_id'] == 'undefined') {
-                        $redis->zRem($account_follow_key, $info['goods_id']);
-                        $redis->sRem($goods_follow_key, $info['open_id']);
-                    } else {
-                        $redis->zAdd($account_follow_key, $info['create_time'], $info['goods_id']);
-                        $redis->sAdd($goods_follow_key, $info['open_id']);
-                    }
-
-                    echo "同步 {$info['open_id']} 关注 {$info['goods_id']} 成功，关注时间:{$info['create_time']} \r\n";
-                }
-                $page++;
-            }
-        }
-
-        echo '脚本处理完成';
-    }
 
     public function gameDiscount()
     {

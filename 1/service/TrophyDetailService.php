@@ -61,13 +61,25 @@ class TrophyDetailService extends BaseService
             return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
         }
 
-        $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
-        if ($this->hasError()) {
-            $data['psn_id'] = $psn_id;
-            $data['np_communication_id'] = $np_communication_id;
-            $redis->lPush($sync_mq_key, json_encode($data));
-            return $this->setError($this->getError());
+        $db = pdo();
+        $db->tableName = 'trophy_group';
+        $where['np_communication_id'] = $np_communication_id;
+        $group = $db->findAll($where, 'group_id, name', 'id asc');
+
+        if (empty($group)) {
+            $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
+            if ($this->hasError()) {
+                $data['psn_id'] = $psn_id;
+                $data['np_communication_id'] = $np_communication_id;
+                $redis->lPush($sync_mq_key, json_encode($data));
+                return $this->setError($this->getError());
+            }
         }
+
+        if (empty($group)) {
+            return $this->setError('get_trophy_group_fail', '获取奖杯组异常');
+        }
+
 
         foreach ($group as $info) {
             $this->syncUserTrophyProgress($psn_id, $np_communication_id, $info['group_id']);
@@ -279,6 +291,14 @@ class TrophyDetailService extends BaseService
 
     public function saveTrophyInfo($np_communication_id, $group_id, $info)
     {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_info', $np_communication_id, $info['trophy_id']);
+        $exist = $redis->hGet($redis_key, 'trophy_id');
+
+        if (!empty($exist)) {
+            return false;
+        }
+
         try {
             $db  = pdo();
             $db->tableName = 'trophy_info';
@@ -317,13 +337,21 @@ class TrophyDetailService extends BaseService
             return $this->setError('db_error');
         }
 
-        $redis = r('psn_redis');
-        $redis_key = redis_key('trophy_info', $np_communication_id, $info['trophy_id']);
+
         $redis->hMset($redis_key, $cache);
     }
 
     public function saveUserTrophyInfo($psn_id, $info)
     {
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_info_user', $psn_id, $info['np_communication_id'], $info['trophy_id']);
+        $is_earn = $redis->hget($redis_key, 'is_earn');
+
+        //已经处理过 则不重复写数据库和缓存
+        if ((int)$is_earn == 1) {
+            return false;
+        }
+
         try {
             $db  = pdo();
             $db->tableName = 'trophy_info_user';
@@ -360,8 +388,7 @@ class TrophyDetailService extends BaseService
             'is_earn' => $data['is_earn'],
             'earn_time' => $data['earn_time'],
         );
-        $redis = r('psn_redis');
-        $redis_key = redis_key('trophy_info_user', $psn_id, $info['np_communication_id'], $info['trophy_id']);
+
         $redis->hMset($redis_key, $cache);
     }
 
@@ -381,13 +408,28 @@ class TrophyDetailService extends BaseService
         $trophy_progress = $db->findAll($condition);
 
         $trophy_progress_hash = array();
+        $earn_num = 0;
         if (!empty($trophy_progress)) {
             foreach ($trophy_progress as $item) {
+                (int)$item['is_earn'] == 1 && $earn_num ++;
                 $trophy_progress_hash[$item['trophy_id']] = array(
                     'is_earn' => $item['is_earn'] ? : '0',
                     'earn_time' => $item['earn_time'] ? : '0',
                 );
             }
+        }
+
+        //处理异常情况 对比已获得的奖杯数量是否与列表一致
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_title_user', $psn_id, $np_communication_id);
+        $trophy = $redis->hGetAll($redis_key);
+        $trophy_num = $trophy['bronze'] + $trophy['silver'] + $trophy['gold'] + $trophy['platinum'];
+        if ($earn_num !== $trophy_num) {
+            log::n("奖杯详情数量与奖杯列表数量不一致 {$earn_num} {$trophy_num}");
+            $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
+            $data['psn_id'] = $psn_id;
+            $data['np_communication_id'] = $np_communication_id;
+            $redis->lPush($sync_mq_key, json_encode($data));
         }
 
         $trophy_list_hash = array();

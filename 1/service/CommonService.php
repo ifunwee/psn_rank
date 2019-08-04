@@ -17,6 +17,7 @@ class CommonService extends BaseService
      */
     public function curl($url, $header = array(), $post_data = '', $method = 'get', $cookie = '')
     {
+        $start = microtime(true);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
@@ -67,6 +68,7 @@ class CommonService extends BaseService
         //        var_dump($errno, $error);exit;
 
         curl_close($ch);
+//        var_dump($curl_info, microtime(true)-$start);
         return $output;
 
     }

@@ -106,13 +106,21 @@ class TrophyTitleService extends BaseService
                 }
             } else {
                 foreach ($list as $trophy) {
+                    $bronze = (int)$trophy['user_trophy']['bronze'];
+                    $silver = (int)$trophy['user_trophy']['silver'];
+                    $gold = (int)$trophy['user_trophy']['gold'];
+                    $platinum = (int)$trophy['user_trophy']['platinum'];
+                    $current_trophy_num = $bronze + $silver + $gold + $platinum;
+
                     $redis_key = redis_key('trophy_title_user', $psn_id, $trophy['np_communication_id']);
-                    $origin_progress = $redis->hGet($redis_key, 'progress') ? : 0;
-                    if ($trophy['user_trophy']['progress'] > $origin_progress) {
+                    $origin_trophy = $redis->hGetAll($redis_key);
+                    $origin_trophy_num = $origin_trophy['bronze'] + $origin_trophy['silver'] + $origin_trophy['gold'] + $origin_trophy['platinum'];
+
+                    if ($current_trophy_num > $origin_trophy_num) {
                         $data['np_communication_id'] = $trophy['np_communication_id'];
                         $redis->lPush($sync_mq_key, json_encode($data));
                     } else {
-                        log::n("{$psn_id} {$trophy['np_communication_id']} 进度未改变，不推入同步详情任务");
+                        log::n("{$psn_id} {$trophy['np_communication_id']} {$origin_trophy_num} {$current_trophy_num} 奖杯数未改变，不推入同步详情任务");
                     }
                 }
             }
@@ -256,6 +264,22 @@ class TrophyTitleService extends BaseService
             return $this->setError('param_np_communication_id_is_empty');
         }
 
+        $bronze = (int)$data['bronze'];
+        $silver = (int)$data['silver'];
+        $gold = (int)$data['gold'];
+        $platinum = (int)$data['platinum'];
+        $current_trophy_num = $bronze + $silver + $gold + $platinum;
+
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_title_user', $psn_id, $np_communication_id);
+        $trophy_title = $redis->hGetAll($redis_key);
+        $origin_trophy_num = $trophy_title['bronze'] + $trophy_title['silver'] + $trophy_title['gold'] + $trophy_title['platinum'];
+
+        if (!empty($trophy_title) && (int)$current_trophy_num == (int)$origin_trophy_num) {
+            log::i("用户奖杯数据未发生变化，无需入库。 {$origin_trophy_num} {$current_trophy_num}");
+            return false;
+        }
+
         try {
             $db = pdo();
             $db->tableName = 'trophy_title_user';
@@ -294,13 +318,36 @@ class TrophyTitleService extends BaseService
             'platinum' => $data['platinum'] ? : 0,
             'last_play_time' => $data['last_play_time'] ? : 0,
         );
-        $redis = r('psn_redis');
-        $redis_key = redis_key('trophy_title_user', $psn_id, $np_communication_id);
+
         $redis->hMset($redis_key, $cache);
     }
 
     public function saveTrophyTitleInfo($trophy)
     {
+        $bronze = (int)$trophy['defined_trophy']['bronze'];
+        $silver = (int)$trophy['defined_trophy']['silver'];
+        $gold = (int)$trophy['defined_trophy']['gold'];
+        $platinum = (int)$trophy['defined_trophy']['platinum'];
+        $current_trophy_num = $bronze + $silver + $gold + $platinum;
+
+        $redis = r('psn_redis');
+        $redis_key = redis_key('trophy_title', $trophy['np_communication_id']);
+        $trophy_title = $redis->hGetAll($redis_key);
+
+        $origin_trophy_num = $trophy_title['bronze'] + $trophy_title['silver'] + $trophy_title['gold'] + $trophy_title['platinum'];
+        if (!empty($trophy_title)) {
+            if ((int)$origin_trophy_num !== (int)$current_trophy_num) {
+                $service = s('TrophyDetial');
+                $service->syncTrophyGroupInfoFromSony($trophy['np_communication_id']);
+                if ($service->hasError()) {
+                    $service->flushError();
+                    return false;
+                }
+            } else {
+                log::i("奖杯数据未发生变化，无需入库。 {$origin_trophy_num} {$current_trophy_num}");
+                return false;
+            }
+        }
         try {
             $db = pdo();
             $db->tableName = 'trophy_title';
@@ -334,8 +381,6 @@ class TrophyTitleService extends BaseService
             return $this->setError($e->getCode(), $e->getMessage());
         }
 
-        $redis = r('psn_redis');
-        $redis_key = redis_key('trophy_title', $trophy['np_communication_id']);
         $redis->hMset($redis_key, $cache);
     }
 
