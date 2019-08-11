@@ -114,14 +114,14 @@ class ProfileInterface extends BaseInterface
         $trophy_id = getParam('trophy_id');
         $page = getParam('page', 1);
 
-        $service      = s('Profile');
-        $info = $service->getTrophyTips($game_id, $trophy_id, $page);
+        $service      = s('TrophyTips');
+        $result = $service->getTrophyTips($game_id, $trophy_id, $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
         }
 
-        $this->respondSuccess($info);
+        $this->respondSuccess($result);
     }
 
     /**

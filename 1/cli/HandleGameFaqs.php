@@ -19,6 +19,7 @@ class HandleGameFaqs
             ":authority: gamefaqs.gamespot.com",
             "accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36",
+            "cookie: gf_dvi=NWQ0ZmIyZGNhZjJiZjViOWQzZjA5YzAwMDA5Y2MxZGIyNTRlZDIwMWQ0NWU2YjFjOGMzZTNiZDQ0ZjUzNWQ0ZmIyZGM%3D; spt=yes; XCLGFbrowser=VIerDV1Pst%2BniwA1Kh0; LDCLGFbrowser=6d28ae80-f857-45af-bed6-ec8332ae3f35; s_vnum=1568096269377%26vn%3D1; s_invisit=true; s_lv_gamefaqs_s=First%20Visit; __utma=132345752.586949792.1565504270.1565504270.1565504270.1; __utmb=132345752.0.10.1565504270; __utmc=132345752; __utmz=132345752.1565504270.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); AMCVS_10D31225525FF5790A490D4D%40AdobeOrg=1; gf_geo=MTc1LjQzLjI0NS4xODU6MTU2OjA%3D; fv20190812=1; dfpsess=m; AMCV_10D31225525FF5790A490D4D%40AdobeOrg=-894706358%7CMCIDTS%7C18120%7CMCMID%7C54525299530706158401897833863038794234%7CMCAAMLH-1566109070%7C11%7CMCAAMB-1566109072%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1565511470s%7CNONE%7CvVersion%7C2.3.0%7CMCAID%7C2EA7D971052E7B7F-40002CA500002986; s_cc=true; aam_uuid=54754776598986281841874059461841763458; trc_cookie_storage=taboola%2520global%253Auser-id%3D60233d33-4ece-4641-8644-f4615338d135-tuct3d6854e; s_getNewRepeat=1565504278612-New; s_lv_gamefaqs=1565504278614; QSI_HistorySession=https%3A%2F%2Fgamefaqs.gamespot.com%2Fps4%2Fcategory%2F999-all%3Fpage%3D0~1565504281847",
         );
 
         $list = $redis->zRange($item_url_key, 0, -1);
@@ -28,7 +29,6 @@ class HandleGameFaqs
         }
         exit;
         $i = 1;
-        $redis->delete($item_url_key);
         while (true) {
             $url = "https://gamefaqs.gamespot.com/ps4/category/999-all?page={$page}";
             $response = $service->curl($url, $header);
@@ -65,6 +65,7 @@ class HandleGameFaqs
 
             $count = count($matches[2]);
             echo "第{$page}页游戏链接处理完成 处理数据{$count}条 \r\n";
+            sleep(3);
             $page++;
         }
     }
@@ -86,6 +87,8 @@ class HandleGameFaqs
             ":authority: gamefaqs.gamespot.com",
             "accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36",
+            "cookie: gf_dvi=NWQ0ZmIyZGNhZjJiZjViOWQzZjA5YzAwMDA5Y2MxZGIyNTRlZDIwMWQ0NWU2YjFjOGMzZTNiZDQ0ZjUzNWQ0ZmIyZGM%3D; spt=yes; XCLGFbrowser=VIerDV1Pst%2BniwA1Kh0; LDCLGFbrowser=6d28ae80-f857-45af-bed6-ec8332ae3f35; s_vnum=1568096269377%26vn%3D1; s_invisit=true; s_lv_gamefaqs_s=First%20Visit; __utma=132345752.586949792.1565504270.1565504270.1565504270.1; __utmb=132345752.0.10.1565504270; __utmc=132345752; __utmz=132345752.1565504270.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); AMCVS_10D31225525FF5790A490D4D%40AdobeOrg=1; gf_geo=MTc1LjQzLjI0NS4xODU6MTU2OjA%3D; fv20190812=1; dfpsess=m; AMCV_10D31225525FF5790A490D4D%40AdobeOrg=-894706358%7CMCIDTS%7C18120%7CMCMID%7C54525299530706158401897833863038794234%7CMCAAMLH-1566109070%7C11%7CMCAAMB-1566109072%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1565511470s%7CNONE%7CvVersion%7C2.3.0%7CMCAID%7C2EA7D971052E7B7F-40002CA500002986; s_cc=true; aam_uuid=54754776598986281841874059461841763458; trc_cookie_storage=taboola%2520global%253Auser-id%3D60233d33-4ece-4641-8644-f4615338d135-tuct3d6854e; s_getNewRepeat=1565504278612-New; s_lv_gamefaqs=1565504278614; QSI_HistorySession=https%3A%2F%2Fgamefaqs.gamespot.com%2Fps4%2Fcategory%2F999-all%3Fpage%3D0~1565504281847",
+
         );
 
         $i = 1;
@@ -306,8 +309,8 @@ class HandleGameFaqs
                 'publisher' => $publisher ? : '',
                 'franchises' => $franchise ? : '',
                 'release' => $release ? : '',
-                'local_player' => $local_player ? : '',
-                'online_player' => $online_player ? : '',
+                'local_players' => $local_player ? : '',
+                'online_players' => $online_player ? : '',
                 'mc_score' => $mc_score ? : 0,
                 'rating' => $rating ? : '',
                 'difficulty' => $difficulty ? : '',
@@ -325,7 +328,7 @@ class HandleGameFaqs
             unset($response, $data);
             $i++;
             $rand = mt_rand(1,3);
-            sleep($rand);
+            sleep(3);
         }
 
         echo "所有资料更新完毕 \r\n";

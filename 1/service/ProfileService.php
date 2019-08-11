@@ -671,6 +671,7 @@ class ProfileService extends BaseService
 
             $list[] = $temp;
             $data['game_id'] = $game_id;
+            $data['np_communication_id'] = $game_id;
             $data['trophy_id'] = $trophy_id;
             $data['source'] = 1;
             $data['create_time'] = time();

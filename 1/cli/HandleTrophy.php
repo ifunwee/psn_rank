@@ -62,6 +62,37 @@ class HandleTrophy extends BaseService
         }
     }
 
+    public function syncTrophyTips()
+    {
+        $redis = r('psn_redis');
+        $sync_mq_key = redis_key('mq_sync_trophy_tips');
+        /** @var  $service TrophyTipsService */
+        $service = s('TrophyTips');
+
+        while ($redis->lLen($sync_mq_key) > 0) {
+            $json = $redis->rPop($sync_mq_key);
+            $data = json_decode($json, true);
+            $np_communication_id = $data['np_communication_id'];
+            $daily_key = redis_key('daily_sync_trophy_tips_list', date('Ymd'));
+            $is_sync = $redis->sIsMember($daily_key, $np_communication_id);
+            if ($is_sync === true) {
+                echo "{$np_communication_id} 奖杯贴士今日已同步过 \r\n";
+                continue;
+            }
+            $service->syncTrophyTips($np_communication_id);
+            if ($service->hasError()) {
+                echo "{$np_communication_id} 奖杯贴士同步异常: {$service->getErrorCode()} {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+                continue;
+            }
+            $redis->sAdd($daily_key, $np_communication_id);
+            $redis->expire($daily_key, time()+86400);
+
+            $time = date('Y-m-d H:i:s');
+            echo "{$time}: {$np_communication_id} 同步奖杯贴士结束 \r\n";
+        }
+    }
+
     public function addTrophyDetail()
     {
         $db = pdo();

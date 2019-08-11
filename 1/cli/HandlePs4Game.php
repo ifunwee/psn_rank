@@ -133,6 +133,27 @@ class HandlePs4Game extends BaseService
                 }
                 unset($member);
             }
+            switch ($attr['ps-camera-compatibility']) {
+                case 'incompatible': $ps_camera = 0; break;
+                case 'compatible': $ps_camera = 1; break;
+                case 'required': $ps_camera = 2; break;
+                default: $ps_camera = null;
+            }
+
+            switch ($attr['ps-move-compatibility']) {
+                case 'incompatible': $ps_move = 0; break;
+                case 'compatible': $ps_move = 1; break;
+                case 'required': $ps_move = 2; break;
+                default: $ps_move = null;
+            }
+
+            switch ($attr['ps-vr-compatibility']) {
+                case 'incompatible': $ps_vr = 0; break;
+                case 'compatible': $ps_vr = 1; break;
+                case 'required': $ps_vr = 2; break;
+                default: $ps_vr = null;
+            }
+
             $info = array(
                 'goods_id'           => $item['id'] ?: '',
                 'np_title_id'        => $np_title_id ?: '',
@@ -149,6 +170,9 @@ class HandlePs4Game extends BaseService
                 'file_size_unit'     => $attr['file-size']['unit'] ?: '',
                 'genres'             => $attr['genres'] ? implode(',', $attr['genres']) : '',
                 'language_support'   => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
+                'ps_camera'          => $ps_camera,
+                'ps_move'            => $ps_move,
+                'ps_vr'              => $ps_vr,
             );
 
             $media = array(

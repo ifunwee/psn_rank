@@ -76,6 +76,8 @@ class GoodsService extends BaseService
             'goods_id'         => $goods_info['goods_id'],
             'is_main'          => $goods_info['is_main'],
             'name'             => $goods_info['name' . $this->suffix] ? : '',
+            'display_name'     => $goods_info['name' . $this->suffix] ? : '',
+            'oringin_name'     => $goods_info['name'] ? : '',
             'cover_image'      => $goods_info['cover_image'] ? : '',
             'description'      => $goods_info['description' . $this->suffix] ? : '',
             'rating_score'     => $goods_info['rating_score'],

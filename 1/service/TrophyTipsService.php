@@ -19,6 +19,11 @@ class TrophyTipsService extends BaseService
             $list = $this->getTrophyTipsFromDb($np_communication_id, $trophy_id, $page);
         }
 
+        $redis = r('psn_redis');
+        $sync_mq_key = redis_key('mq_sync_trophy_tips');
+        $data['np_communication_id'] = $np_communication_id;
+        $redis->lPush($sync_mq_key, json_encode($data));
+
         $result['tips_list'] = $list;
         return $result;
     }
@@ -76,7 +81,6 @@ class TrophyTipsService extends BaseService
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
-
         //替换a标签跳转为#
         $response =  preg_replace_callback('/<a href=\"(.*?)\"/i', function($matchs){
             return str_replace($matchs[1], '#', $matchs[0]);
@@ -127,13 +131,11 @@ class TrophyTipsService extends BaseService
                 'nickname'  => trim($nickname_arr[$key]),
                 'avatar'    => trim($avatar_arr[$key]),
                 'content'   => trim($content),
+                'np_communication_id' => $np_communication_id,
+                'trophy_id' => $trophy_id,
+                'source' => 1,
+                'create_time' => time(),
             );
-
-            $data['np_communication_id'] = $np_communication_id;
-            $data['trophy_id'] = $trophy_id;
-            $data['source'] = 1;
-            $data['create_time'] = time();
-
             $db->preInsert($data);
         }
 
@@ -176,5 +178,100 @@ class TrophyTipsService extends BaseService
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
+    }
+
+    public function syncTrophyTips($np_communication_id)
+    {
+        $db = pdo();
+        $db->tableName = 'trophy_info';
+        $where['np_communication_id'] = $np_communication_id;
+        $trophy_list = $db->findAll($where, '*', 'id asc');
+        unset($where);
+
+        foreach ($trophy_list as $trophy) {
+            $start = (int)substr($np_communication_id, 4, 5);
+            $end = str_pad($trophy['trophy_id'] + 1, 3, 0, STR_PAD_LEFT);
+            $id = (string)$start . (string)$end;
+
+            $url = "http://psnine.com/trophy/{$id}";
+            $cookie = '__Psnine_shell=24b457e81999fb10bc4f0e40c7eb8929; __Psnine_psnid=ifunwee';
+            $service = s('Common');
+            $response = $service->curl($url, array(), '', 'get', $cookie);
+            if ($service->hasError()) {
+                return $this->setError($service->getError());
+            }
+            //替换a标签跳转为#
+            $response =  preg_replace_callback('/<a href=\"(.*?)\"/i', function($matchs){
+                return str_replace($matchs[1], '#', $matchs[0]);
+            }, $response);
+
+            //过滤@xxxxxx
+            $preg = '/<a href=\"#\">@(.*?)<\/a>&nbsp;/i';
+            $response = preg_replace($preg, '', $response);
+
+            //过滤p9的emoji表情
+            /**
+            $preg = '/<img src=\"http:\/\/photo.psnine.com\/face\/(.*?)\">/i';
+            $response = preg_replace($preg, '', $response);
+             */
+
+            //匹配头像
+            $preg = '/<a class=\"l\"(.*?)<img src=\"(.*?)\" width/i';
+            preg_match_all($preg, $response, $matches);
+            $avatar_arr = $matches[2];
+            unset($matches);
+            //匹配内容
+            $preg = '/<div class=\"content pb10\">([\s\S]*?)<\/div>/i';
+            preg_match_all($preg, $response, $matches);
+            $content_arr = $matches[1];
+            unset($matches);
+            //匹配昵称
+            $preg = '/<a href=\"#\" class=\"psnnode\">(.*?)<\/a>/i';
+            preg_match_all($preg, $response, $matches);
+            $nickname_arr = $matches[1];
+            //匹配节点id
+            $preg = '/updown\(this,\'comment\',\'(.*?)\',\'up\'\)/i';
+            preg_match_all($preg, $response, $matches);
+            $code_arr = $matches[1];
+
+            foreach ($code_arr as $key => $code) {
+                $content = $content_arr[$key];
+                $content = strip_tags($content, '<br>');
+                $content = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $content);
+
+                try {
+                    $db->tableName = 'trophy_tips';
+                    $where = 'code = ' . trim($code);
+                    $info = $db->find($where);
+                    unset($where);
+
+                    if (!empty($info)) {
+                        continue;
+                    }
+                    $insert_data = array(
+                        'code'    => trim($code),
+                        'nickname'  => trim($nickname_arr[$key]),
+                        'avatar'    => trim($avatar_arr[$key]),
+                        'content'   => trim($content),
+                        'np_communication_id' => $np_communication_id,
+                        'trophy_id' => $trophy['trophy_id'],
+                        'source' => 1,
+                        'create_time' => time(),
+                    );
+
+                    $db->insert($insert_data);
+                    unset($insert_data);
+                } catch (Exception $e) {
+                    log::e($e->getCode() . $e->getMessage());
+                    continue;
+                }
+
+            }
+
+            $info['tips_num'] = count($code_arr);
+            $service = s('TrophyDetail');
+            $service->setTrophyInfoToCache($np_communication_id, $trophy['trophy_id'], $info);
+        }
+
     }
 }
