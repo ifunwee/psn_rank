@@ -8,10 +8,12 @@ class TrophyDetailService extends BaseService
         'bronze' => 4,
     );
 
+    const TROPHY_HELPER = 'funwee';
+
     public function getUserTrophyDetail($psn_id, $np_communication_id)
     {
         if (empty($psn_id)) {
-            return $this->setError('param_psn_id_empty', '缺少参数');
+            $psn_id = self::TROPHY_HELPER;
         }
 
         if (empty($np_communication_id)) {
@@ -45,19 +47,20 @@ class TrophyDetailService extends BaseService
     public function syncUserTrophyDetail($psn_id, $np_communication_id)
     {
         if (empty($psn_id)) {
-            return $this->setError('param_psn_id_empty', '缺少参数');
+            $psn_id = self::TROPHY_HELPER;
         }
 
         if (empty($np_communication_id)) {
             return $this->setError('param_np_communication_id_empty', '缺少参数');
         }
+
         $redis = r('psn_redis');
         $sync_time_key = redis_key('sync_time_trophy_detail', $psn_id, $np_communication_id);
         $sync_time = $redis->get($sync_time_key) ? : null;
 
         $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
 
-        if (time() - (int)$sync_time <= 600) {
+        if (time() - (int)$sync_time <= 600 && $psn_id !== self::TROPHY_HELPER) {
             return $this->setError('sync_time_limit', '同步操作过于频繁，请稍后再试');
         }
 

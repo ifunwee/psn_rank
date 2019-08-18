@@ -230,6 +230,7 @@ class HandlePs4Game extends BaseService
             if (empty($info['store_game_code'])) {
                 continue;
             }
+
             $url      = 'https://store.playstation.com/valkyrie-api/en/hk/19/resolve/' . $info['store_game_code'];
             $response = $service->curl($url);
 
@@ -523,6 +524,24 @@ class HandlePs4Game extends BaseService
         $status = empty($attr['skus'][$index]['prices']) ? 0 : 1;
         $status = empty($attr['skus'][$index]['is-preorder']) ? $status : 2;
 
+        $sku_price = null;
+        $sku_reward = array();
+        $is_ea_discount = 0;
+        foreach ($data['included'] as $info) {
+            if ($info['id'] == $default_sku_id) {
+                $sku_price = $info['attributes']['price'];
+                if (empty($info['attributes']['rewards'])) {
+                    continue;
+                }
+                foreach ($info['attributes']['rewards'] as $reward) {
+                    $sku_reward[$reward['discount']] = $reward;
+                    if ($reward['isEAAccess'] === true) {
+                        $is_ea_discount = 1;
+                    }
+                }
+            }
+        }
+
         $db->tableName = 'goods';
         $goods['status'] = $status;
         $goods['update_time'] = time();
@@ -541,6 +560,19 @@ class HandlePs4Game extends BaseService
         $start_date         = $attr['skus'][$index]['prices']['non-plus-user']['availability']['start-date'];
         $end_date           = $attr['skus'][$index]['prices']['non-plus-user']['availability']['end-date'];
 
+        //EAAccess 特殊折扣处理
+        if ((int)$discount > 0 && $sku_reward[$discount]['isEAAccess'] === true) {
+            $sale_price = $sku_price;
+            $origin_price = 0;
+            $discount = 0;
+        }
+
+        if ((int)$plus_discount > 0 && $sku_reward[$plus_discount]['isEAAccess'] === true) {
+            $plus_sale_price = $sku_price;
+            $plus_origin_price = 0;
+            $plus_discount = 0;
+        }
+
         $info = array(
             'goods_id'           => $item['id'] ?: '',
             'origin_price'       => is_numeric($origin_price) ? $origin_price : null,
@@ -552,6 +584,7 @@ class HandlePs4Game extends BaseService
             'start_date'         => $start_date ? strtotime($start_date) : 0,
             'end_date'           => $end_date ? strtotime($end_date) : 0,
             'status'             => $status,
+            'is_ea_discount'     => $is_ea_discount,
         );
 
         if (empty($result)) {
