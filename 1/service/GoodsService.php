@@ -118,6 +118,7 @@ class GoodsService extends BaseService
         $game_info = $service->getGameInfo($goods_info['game_id']);
         $game = array(
             'game_id' => $goods_info['game_id'],
+            'np_communication_id' => $game_info['np_communication_id'] ? : '',
             'main_goods_id' => $game_info['main_goods_id'] ? : '',
             'display_name' => $game_info['display_name'] ? : '',
             'introduction' => $game_info['introduction'] ? : '',
