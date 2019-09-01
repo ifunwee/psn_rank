@@ -255,6 +255,10 @@ class TrophyDetailService extends BaseService
 
         $list = array();
 
+        if (empty($data['trophies'])) {
+            log::e('syncUserTrophyProgress fail: ' . json_encode($data['trophies']));
+            return false;
+        }
         foreach ($data['trophies'] as $item) {
             $info = array(
                 'trophy_id' => $item['trophy_id'],

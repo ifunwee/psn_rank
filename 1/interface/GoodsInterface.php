@@ -30,4 +30,16 @@ class GoodsInterface extends BaseInterface
 
         $this->respondSuccess($info);
     }
+
+    public function dlc()
+    {
+        $service      = s('Goods', 'cn');
+        $list = $service->getDlcList();
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($list);
+    }
 }

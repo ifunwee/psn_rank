@@ -337,7 +337,7 @@ class TrophyTitleService extends BaseService
         $origin_trophy_num = $trophy_title['bronze'] + $trophy_title['silver'] + $trophy_title['gold'] + $trophy_title['platinum'];
         if (!empty($trophy_title)) {
             if ((int)$origin_trophy_num !== (int)$current_trophy_num) {
-                $service = s('TrophyDetial');
+                $service = s('TrophyDetail');
                 $service->syncTrophyGroupInfoFromSony($trophy['np_communication_id']);
                 if ($service->hasError()) {
                     $service->flushError();

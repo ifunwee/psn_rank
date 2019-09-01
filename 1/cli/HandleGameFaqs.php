@@ -391,7 +391,7 @@ class HandleGameFaqs
                     $condition['np_title_id'] = $np_title_id;
                     $db->update($update, $condition);
                 } else {
-                    echo "数据库无法找到np_title_id {$game['np_title_id']} {$np_title_id} 的相关资料  \r\n";
+                    echo "数据库无法找到np_title_id 港区：{$game['np_title_id']} 美区：{$np_title_id} 的相关资料  \r\n";
                     continue;
                 }
             }

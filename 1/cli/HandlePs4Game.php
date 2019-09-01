@@ -173,6 +173,10 @@ class HandlePs4Game extends BaseService
                 'ps_camera'          => $ps_camera,
                 'ps_move'            => $ps_move,
                 'ps_vr'              => $ps_vr,
+                'content_type'       => strtolower($attr['game-content-type']),
+                'primary'            => strtolower($attr['primary-classification']),
+                'secondary'          => strtolower($attr['secondary-classification']),
+                'tertiary'           => strtolower($attr['tertiary-classification']),
             );
 
             $media = array(
@@ -243,17 +247,12 @@ class HandlePs4Game extends BaseService
                 if ($service->hasError()) {
                     echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
                     $service->flushError();
+                    $fail_list_key = redis_key('price_update_fail_list');
+                    $redis->lpush($fail_list_key, $info['store_game_code']);
                     continue;
                 }
             }
             $data = json_decode($response, true);
-            if (empty($data['included'])) {
-                echo "获取商品 {$info['store_game_code']} 数据失败 \r\n";
-                var_dump($data);
-                $fail_list_key = redis_key('price_update_fail_list');
-                $redis->lpush($fail_list_key, $info['store_game_code']);
-                continue;
-            }
 
             $result = $this->handleData($data, $info['store_game_code']);
             if ($this->hasError()) {
@@ -483,7 +482,7 @@ class HandlePs4Game extends BaseService
     {
         $db = pdo();
         $goods_id = $data['data']['relationships']['children']['data'][0]['id'];
-        if (isset($goods_id) && $handle_goods_id != $goods_id) {
+        if (empty($goods_id) || $handle_goods_id != $goods_id) {
             $goods['status'] = -1;
             $goods['update_time'] = time();
             $db->tableName = 'goods';
@@ -874,8 +873,6 @@ class HandlePs4Game extends BaseService
         }
     }
 
-
-
     public function gameDiscount()
     {
         $db = pdo();
@@ -986,6 +983,10 @@ class HandlePs4Game extends BaseService
             //            $goods['name'] = str_replace('™', '', $goods['name']);
             //            $goods['name'] = str_replace('®', '', $goods['name']);
             $game_id = 0;
+            $is_vr_support = 0;
+            if ($goods['ps_vr']) {
+                $is_vr_support = 1;
+            }
             $game = array(
                 'np_title_id' => $goods['np_title_id'],
                 'np_communication_id' => $goods['np_communication_id'],
@@ -1003,6 +1004,7 @@ class HandlePs4Game extends BaseService
                 'description' => $goods['description_cn'],
                 'language_support' => $goods['language_support_cn'],
                 'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
+                'is_vr_support' => $is_vr_support,
                 'screenshots' => $goods['screenshots'],
                 'videos' => $goods['preview'],
                 'rating_total' => $goods['rating_total'],
@@ -1029,6 +1031,7 @@ class HandlePs4Game extends BaseService
                     $data['main_goods_id'] = $game['main_goods_id'];
                     $data['np_communication_id'] = $game['np_communication_id'];
                     $data['origin'] = 2;
+                    $data['is_vr_support'] = $is_vr_support;
 //                    $data['cover_image'] = $game['cover_image'];
 //                    $data['language_support'] = $game['language_support'];
 //                    $data['is_chinese_support'] = $game['is_chinese_support'];
@@ -1070,6 +1073,10 @@ class HandlePs4Game extends BaseService
             //            $goods['name'] = str_replace('™', '', $goods['name']);
             //            $goods['name'] = str_replace('®', '', $goods['name']);
             $game_id = 0;
+            $is_vr_support = 0;
+            if ($goods['ps_vr']) {
+                $is_vr_support = 1;
+            }
             $game = array(
                 'np_title_id' => $goods['np_title_id'],
                 'np_communication_id' => $goods['np_communication_id'],
@@ -1087,6 +1094,7 @@ class HandlePs4Game extends BaseService
                 'description' => $goods['description_cn'],
                 'language_support' => $goods['language_support_cn'],
                 'is_chinese_support' => strpos($goods['language_support_cn'], '中') === false ? 0 : 1,
+                'is_vr_support' => $is_vr_support,
                 'screenshots' => $goods['screenshots'],
                 'videos' => $goods['preview'],
                 'rating_total' => $goods['rating_total'],
@@ -1112,6 +1120,7 @@ class HandlePs4Game extends BaseService
                 } else {
                     $game_id = $info['game_id'];
                     $data['main_goods_id'] = $game['main_goods_id'];
+                    $data['is_vr_support'] = $is_vr_support;
                     $data['origin'] = 1;
 //                    $data['cover_image'] = $game['cover_image'];
 //                    $data['language_support'] = $game['language_support'];
@@ -1140,5 +1149,147 @@ class HandlePs4Game extends BaseService
             echo "游戏资料写入成功：{$game_id} {$goods['name']} \r\n";
         }
 
+    }
+
+    public function dlc()
+    {
+        $service = s('Common');
+        $db      = pdo();
+        $i       = 0;
+        $size    = 30;
+        while (true) {
+            $start   = $i * $size;
+            $url      = "https://store.playstation.com/valkyrie-api/en/HK/999/container/STORE-MSF86012-ALLADDONS?platform=ps4&size={$size}&bucket=games&start={$start}";
+            $response = $service->curl($url);
+            if ($service->hasError()) {
+                echo "curl 发生异常：{$url} {$service->getErrorCode()}  {$service->getErrorMsg()} \r\n";
+                $service->flushError();
+                continue;
+            }
+            $data = json_decode($response, true);
+            if (empty($data['included'])) {
+                echo "获取第{$i}页数据失败 \r\n";
+                var_dump($data);
+                break;
+            }
+
+            foreach ($data['included'] as $item) {
+                if ($item['type'] !== 'game-related') {
+                    continue;
+                }
+                $attr = $item['attributes'];
+                $default_sku_id = $attr['default-sku-id'];
+                $index = null;
+
+                if (is_array($attr['skus'])) {
+                    foreach ($attr['skus'] as $key => $sku_info) {
+                        if ($sku_info['id'] == $default_sku_id) {
+                            $index = $key;
+                        }
+                    }
+                }
+
+                $product_id_arr = explode('-', $item['id']);
+                $np_title_id    = $product_id_arr[1];
+
+                $parent_product_id_arr = array();
+                $parent_goods_id    = $attr['parent']['id'];
+                $parent_goods_id && $parent_product_id_arr = explode('-', $parent_goods_id);
+
+                $parent_np_title_id = $parent_product_id_arr[1];
+
+                $db->tableName     = 'dlc';
+                $where['goods_id'] = $item['id'];
+                $result            = $db->find($where);
+
+                if (is_array($attr['genres'])) {
+                    foreach ($attr['genres'] as &$member) {
+                        if (!empty($this->genres[$member])) {
+                            $member = $this->genres[$member];
+                        } else {
+                            echo "无法识别的genres: {$member} \r\n";
+                            continue;
+                        }
+                    }
+                    unset($member);
+                }
+                switch ($attr['ps-camera-compatibility']) {
+                    case 'incompatible': $ps_camera = 0; break;
+                    case 'compatible': $ps_camera = 1; break;
+                    case 'required': $ps_camera = 2; break;
+                    default: $ps_camera = null;
+                }
+
+                switch ($attr['ps-move-compatibility']) {
+                    case 'incompatible': $ps_move = 0; break;
+                    case 'compatible': $ps_move = 1; break;
+                    case 'required': $ps_move = 2; break;
+                    default: $ps_move = null;
+                }
+
+                switch ($attr['ps-vr-compatibility']) {
+                    case 'incompatible': $ps_vr = 0; break;
+                    case 'compatible': $ps_vr = 1; break;
+                    case 'required': $ps_vr = 2; break;
+                    default: $ps_vr = null;
+                }
+
+                $info = array(
+                    'goods_id'           => $item['id'] ?: '',
+                    'np_title_id'        => $np_title_id ?: '',
+                    'parent_np_title_id' => $parent_np_title_id ?: '',
+                    'name'               => $attr['name'] ?: '',
+                    'cover_image'        => $attr['thumbnail-url-base'] ?: '',
+                    'description'        => $attr['long-description'] ?: '',
+                    'rating_score'       => $attr['star-rating']['score'] ?: 0,
+                    'rating_total'       => $attr['star-rating']['total'] ?: 0,
+                    'release_date'       => $attr['release-date'] ? strtotime($attr['release-date']) : 0,
+                    'publisher'          => $attr['provider-name'] ?: '',
+                    'developer'          => '',
+                    'file_size'          => $attr['file-size']['value'] ?: 0,
+                    'file_size_unit'     => $attr['file-size']['unit'] ?: '',
+                    'genres'             => $attr['genres'] ? implode(',', $attr['genres']) : '',
+                    'language_support'   => is_numeric($index) ? $attr['skus'][$index]['name'] : '',
+                    'ps_camera'          => $ps_camera,
+                    'ps_move'            => $ps_move,
+                    'ps_vr'              => $ps_vr,
+                    'content_type'       => strtolower($attr['game-content-type']),
+                    'primary'            => strtolower($attr['primary-classification']),
+                    'secondary'          => strtolower($attr['secondary-classification']),
+                    'tertiary'           => strtolower($attr['tertiary-classification']),
+                );
+
+                $media = array(
+                    'preview'            => !empty($attr['media-list']['preview']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['preview'])) : '',
+                    'screenshots'        => !empty($attr['media-list']['screenshots']) ? str_replace('https:\/\/apollo2.dl.playstation.net','',json_encode($attr['media-list']['screenshots'])) : '',
+                );
+                if (!empty($info['cover_image'])) {
+                    $info['cover_image'] = str_replace('https://store.playstation.com', '', $info['cover_image']);
+                }
+                $info['description'] = strip_tags($info['description'], '<br>');
+                $info['description'] = preg_replace('/<br\\s*?\/??>/i', chr(13) . chr(10), $info['description']);
+
+                if (empty($result)) {
+                    $info['preview'] = $media['preview'];
+                    $info['screenshots'] = $media['screenshots'];
+                    $info['create_time'] = time();
+                    $db->insert($info);
+                } else {
+                    $info['update_time'] = time();
+                    empty($result['preview']) && $info['preview'] = $media['preview'];
+                    empty($result['screenshots']) && $info['screenshots'] = $media['screenshots'];
+                    $condition['goods_id']     = $result['goods_id'];
+                    $db->update($info, $condition);
+                }
+
+                echo "DLC {$item['id']} 入库完成";
+                echo "\r\n";
+            }
+            $end = $start + $size;
+            echo "第{$end}条数据处理完毕 \r\n";
+            $i++;
+        }
+        $date = date('Y-m-d H:i:s', time());
+        echo "{$date} 脚本处理完毕";
     }
 }

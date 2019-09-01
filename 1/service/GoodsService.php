@@ -91,6 +91,9 @@ class GoodsService extends BaseService
             'file_size'        => $goods_info['file_size'],
             'language_support' => $goods_info['language_support' . $this->suffix] ? : '',
             'status'           => $goods_info['status'],
+            'ps_camera'        => $goods_info['ps_camera'],
+            'ps_move'          => $goods_info['ps_move'],
+            'ps_vr'            => $goods_info['ps_vr'],
             'is_follow'        => '0',
         );
 
@@ -404,6 +407,29 @@ class GoodsService extends BaseService
 
             $list[] = $item;
         }
+
+        return $list;
+    }
+
+    public function getDlcList()
+    {
+        $where = "content_type = 'add-on' or content_type = 'level' or content_type = 'map'";
+        $list = $this->getDlcListFromDb($where, array(), 'rating_total desc');
+
+        return $list;
+    }
+
+    public function getDlcListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
+    {
+        $where = $where ? $where : '1=1';
+        $field = $field ? implode(',', $field) : '*';
+        $sort = $sort ? $sort : 'id desc';
+        $start = ($page - 1) * $limit;
+        $limit_str = "{$start}, {$limit}";
+
+        $db = pdo();
+        $db->tableName = 'dlc';
+        $list = $db->findAll($where, $field, $sort, $limit_str);
 
         return $list;
     }
