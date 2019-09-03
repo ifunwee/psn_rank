@@ -71,7 +71,7 @@ class GameService extends GoodsService
         return $list;
     }
 
-    public function completeGoodsPrice($game_list)
+    public function completePrice($game_list)
     {
         $list = array();
         if (empty($game_list)) {
@@ -161,31 +161,31 @@ class GameService extends GoodsService
                 $where = "release_date <= UNIX_TIMESTAMP() and (mc_score <> NULL or rating_total >= 10) and status = 1";
                 $sort = 'release_date desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($game_list);
+                $list = $this->completePrice($game_list);
                 break;
             case 'latest':
                 $where = "release_date <= UNIX_TIMESTAMP() and status = 1";
                 $sort = 'release_date desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($game_list);
+                $list = $this->completePrice($game_list);
                 break;
             case 'coming':
                 $where = "release_date > UNIX_TIMESTAMP() and status = 1";
                 $sort = 'release_date asc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($game_list);
+                $list = $this->completePrice($game_list);
                 break;
             case 'best':
                 $where = "status = 1";
                 $sort = 'mc_score desc, rating_score desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($game_list);
+                $list = $this->completePrice($game_list);
                 break;
             case 'hot':
                 $where = "rating_total > 100 and release_date <= UNIX_TIMESTAMP() and status = 1";
                 $sort = 'rating_total desc, id desc';
                 $game_list = $this->getGameListFromDb($where, array(), $sort, $page, $limit);
-                $list = $this->completeGoodsPrice($game_list);
+                $list = $this->completePrice($game_list);
                 break;
             default :
                 return $this->setError('invalid_type');
@@ -202,7 +202,7 @@ class GameService extends GoodsService
         $where = "(origin_name LIKE '%{$name}%' OR display_name LIKE '%{$name}%') and status = 1";
         $sort = "rating_total DESC";
         $game_list = $this->getGameListFromDb($where, array(), $sort, $page);
-        $list = $this->completeGoodsPrice($game_list);
+        $list = $this->completePrice($game_list);
 
         return $list;
     }

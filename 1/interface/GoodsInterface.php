@@ -42,4 +42,32 @@ class GoodsInterface extends BaseInterface
 
         $this->respondSuccess($list);
     }
+
+    public function getAdditionList()
+    {
+        $np_title_id = getParam('np_title_id');
+
+        $service      = s('Goods', 'cn');
+        $list = $service->getAdditionList($np_title_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($list);
+    }
+
+    public function getAdditionDetail()
+    {
+        $goods_id = getParam('goods_id');
+
+        $service      = s('Goods', 'cn');
+        $result = $service->getAdditionDetail($goods_id);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
+    }
 }

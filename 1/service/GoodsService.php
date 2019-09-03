@@ -1,6 +1,7 @@
 <?php
 class GoodsService extends BaseService
 {
+    public $table_name = 'goods';
     protected $suffix = '_cn';
     protected $genres = array(
         'action'                  => '动作',
@@ -26,6 +27,26 @@ class GoodsService extends BaseService
         'sports'                  => '运动',
         'strategy'                => '战略',
         'unique'                  => '独特游戏',
+    );
+
+    protected $content_type = array(
+        'catalogue' => '目录',
+        'character' => '角色',
+        'combo' => '套装',
+        'costume' => '外观    ',
+        'extra episode' => '额外内容',
+        'item' => '道具',
+        'level' => '等级',
+        'map' => '地图',
+        'music track' => '音乐原声',
+        'ps vr add-on' => 'VR',
+        'scenes' => '场景',
+        'season pass' => '季票',
+        'system' => '系统',
+        'ticket' => '通行证',
+        'tracks' => '乐曲',
+        'vehicle' => '载具',
+        'weapons' => '装备',
     );
 
     protected $discovery_type = array(
@@ -74,6 +95,7 @@ class GoodsService extends BaseService
 
         $info = array(
             'goods_id'         => $goods_info['goods_id'],
+            'np_title_id'      => $goods_info['np_title_id'],
             'is_main'          => $goods_info['is_main'],
             'name'             => $goods_info['name' . $this->suffix] ? : '',
             'display_name'     => $goods_info['name' . $this->suffix] ? : '',
@@ -149,6 +171,14 @@ class GoodsService extends BaseService
             $relation_goods = array();
         }
         $info['relation_goods'] = $relation_goods;
+
+        //获取相关的追加商品概况
+        $addition_overview = $this->getAdditionOverView($goods_info['np_title_id']);
+        if ($this->hasError()) {
+            $this->flushError();
+            $addition_overview = array();
+        }
+        $info['addition_overview'] = $addition_overview;
 
         //获取相同开发商游戏
         $same_developer_goods = $this->getSameDeveloperGoods($game['game_id'], $game['developer']);
@@ -267,7 +297,7 @@ class GoodsService extends BaseService
         $limit_str = "{$start}, {$limit}";
 
         $db = pdo();
-        $db->tableName = 'goods';
+        $db->tableName = $this->table_name;
         $list = $db->findAll($where, $field, $sort, $limit_str);
 
         return $list;
@@ -276,7 +306,7 @@ class GoodsService extends BaseService
     protected function getGoodsInfoFromDb($goods_id, $field = array())
     {
         $db = pdo();
-        $db->tableName = 'goods';
+        $db->tableName = $this->table_name;
         $field = $field ? implode(',', $field) : '*';
         $result = array();
         if (is_array($goods_id)) {
@@ -304,7 +334,7 @@ class GoodsService extends BaseService
         $limit_str = "{$start}, {$limit}";
 
         $db = pdo();
-        $db->tableName = 'goods';
+        $db->tableName = $this->table_name;
         $sql = "(SELECT {$field} FROM `goods` as a LEFT JOIN `goods_price` as b ON a.goods_id = b.goods_id WHERE {$where} ORDER BY {$sort} LIMIT {$limit_str})";
         $list = $db->query($sql);
 
@@ -342,6 +372,7 @@ class GoodsService extends BaseService
         foreach ($goods_list as $goods) {
             $info = array(
                 'goods_id' => $goods['goods_id'],
+                'content_type' => $this->content_type[$goods['content_type']] ? : '追加内容',
                 'name' => $goods['name'.$this->suffix],
                 'cover_image' => $goods['cover_image'.$this->suffix],
                 'language_support' => $goods['language_support'.$this->suffix],
@@ -382,6 +413,7 @@ class GoodsService extends BaseService
 
     public function getSameDeveloperGoods($game_id, $developer)
     {
+        return array();
         if (empty($game_id)) {
             return $this->setError('param_game_id_is_empty');
         }
@@ -434,5 +466,160 @@ class GoodsService extends BaseService
         return $list;
     }
 
+    protected function getAdditionOverView($np_title_id)
+    {
+        if (empty($np_title_id)) {
+            return $this->setError('param_np_title_id_is_empty');
+        }
+
+        $db = pdo();
+        $data = array();
+        $sql = "select content_type,count('content_type') as num from addition where np_title_id = '{$np_title_id}' and status > 0 group by content_type";
+        $list = $db->query($sql);
+
+        if (empty($list)) {
+            return array();
+        }
+
+        foreach ($list as $item) {
+            $data[] = array(
+                'content_type' => $item['content_type'],
+                'display_name' => $this->content_type[$item['content_type']] ? : '追加内容',
+                'num' => $item['num'],
+            );
+        }
+
+        return $data;
+    }
+
+    public function getAdditionList($np_title_id)
+    {
+        if (empty($np_title_id)) {
+            return $this->setError('param_np_title_id_is_empty');
+        }
+
+        $np_title_id = addslashes($np_title_id);
+        $db = pdo();
+        $db->tableName = 'addition';
+
+        $db = pdo();
+        $sql = "select * from addition where np_title_id = '{$np_title_id}' and status > 0";
+        $addition_list = $db->query($sql);
+
+        if (empty($addition_list)) {
+            return array();
+        }
+
+        $list = $this->completeAdditionPrice($addition_list);
+        return $list;
+    }
+
+    public function completeAdditionPrice($addition_list)
+    {
+        $list = array();
+        if (empty($addition_list)) {
+            return $list;
+        }
+
+        $service = s('goodsPrice');
+        $service->table_name = 'addition_price';
+        $goods_id_arr = array_column($addition_list, 'goods_id');
+        $goods_price = $service->getGoodsPrice($goods_id_arr);
+
+        foreach ($addition_list as $goods) {
+            $info = array(
+                'goods_id' => $goods['goods_id'],
+                'content_type' => $this->content_type[$goods['content_type']] ? : '追加内容',
+                'name' => $goods['name'.$this->suffix],
+                'cover_image' => $goods['cover_image'.$this->suffix],
+                'price' => $goods_price[$goods['goods_id']],
+            );
+
+            $info['cover_image'] && $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image']);
+            $list[] = $info;
+        }
+
+        return $list;
+    }
+
+    public function getAdditionDetail($goods_id)
+    {
+        if (empty($goods_id)) {
+            return $this->setError('param_goods_id_is_empty');
+        }
+        $origin_domain = c('playstation_media_origin_domain');
+        $this->table_name = 'addition';
+        $goods_info = $this->getGoodsInfo($goods_id);
+        if ($goods_info['screenshots']) {
+            foreach ($goods_info['screenshots'] as $key => &$value) {
+                $value['url'] = s('Common')->handlePsnImage($value['url'], 720, 480, 'media');
+            }
+        }
+        unset($value);
+
+        //视频暂时不走cdn 拼上索尼原始域名
+        if ($goods_info['preview']) {
+            foreach ($goods_info['preview'] as $key => &$value) {
+                $value['url'] = $origin_domain.$value['url'];
+            }
+        }
+        unset($value);
+
+
+        $info = array(
+            'goods_id'         => $goods_info['goods_id'],
+            'name'             => $goods_info['name' . $this->suffix] ? : '',
+            'display_name'     => $goods_info['name' . $this->suffix] ? : '',
+            'oringin_name'     => $goods_info['name'] ? : '',
+            'cover_image'      => $goods_info['cover_image'] ? : '',
+            'description'      => $goods_info['description' . $this->suffix] ? : '',
+            'rating_score'     => $goods_info['rating_score'],
+            'rating_total'     => $goods_info['rating_total'],
+            'preview'          => $goods_info['preview'],
+            'screenshots'      => $goods_info['screenshots'],
+            'release_date'     => $goods_info['release_date'],
+            'publisher'        => $goods_info['publisher'],
+            'developer'        => $goods_info['developer'],
+            'genres'           => $goods_info['genres' . $this->suffix] ? : '',
+            'file_size'        => $goods_info['file_size'],
+            'language_support' => $goods_info['language_support' . $this->suffix] ? : '',
+            'status'           => $goods_info['status'],
+            'ps_camera'        => $goods_info['ps_camera'],
+            'ps_move'          => $goods_info['ps_move'],
+            'ps_vr'            => $goods_info['ps_vr'],
+        );
+
+        $service = s('GoodsPrice');
+        $service->table_name = 'addition_price';
+        $price_info = $service->getGoodsPrice($goods_id);
+        $info['price'] = $price_info;
+        $info['price_history'] = $this->getAdditionHistory($goods_id);
+        $current = array(
+            'date' => strtotime(date('Y-m-d'))*1000,
+            'price' => floatval($price_info['non_plus_user']['sale_price']),
+            'plus_price' => floatval($price_info['plus_user']['sale_price']),
+        );
+        $info['price_history'][] = $current;
+        $info['cover_image'] = s('Common')->handlePsnImage($info['cover_image'], 480, 480);
+
+        return $info;
+    }
+
+    public function getAdditionHistory($goods_id)
+    {
+        $db = pdo();
+        $today = strtotime(date('Y-m-d', time()));
+        $db->tableName = 'addition_price_history';
+        $where = "goods_id = '{$goods_id}' and date < {$today}";
+        $list = $db->findAll($where, 'date,price,plus_price', 'date asc');
+
+        foreach ($list as &$value) {
+            $value['date'] = $value['date'] * 1000;
+            $value['price'] = $value['price'] / 100;
+            $value['plus_price'] = $value['plus_price'] / 100;
+        }
+        unset($value);
+        return $list;
+    }
 
 }

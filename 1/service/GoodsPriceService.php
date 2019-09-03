@@ -11,6 +11,7 @@ class GoodsPriceService extends BaseService
         'best',       //最佳口碑
     );
 
+    public $table_name = 'goods_price';
     public function __construct($lang = 'cn')
     {
         parent::__construct();
@@ -182,7 +183,7 @@ class GoodsPriceService extends BaseService
     protected function getGoodsPriceFromDb($goods_id, $field = array())
     {
         $db = pdo();
-        $db->tableName = 'goods_price';
+        $db->tableName = $this->table_name;
         $field = $field ? implode(',', $field) : '*';
         $result = array();
         if (is_array($goods_id)) {
@@ -220,7 +221,7 @@ class GoodsPriceService extends BaseService
         $limit_str = "{$start}, {$limit}";
 
         $db = db();
-        $db->tableName = 'goods_price';
+        $db->tableName = $this->table_name;
         $list = $db->findAll($where, $field, $sort, $limit_str);
 
         return $list;
@@ -235,7 +236,7 @@ class GoodsPriceService extends BaseService
         $limit_str = "{$start}, {$limit}";
 
         $db = pdo();
-        $db->tableName = 'goods_price';
+        $db->tableName = $this->table_name;
         $sql = "(SELECT {$field} FROM `goods_price` as a LEFT JOIN `goods` as b ON a.goods_id = b.goods_id WHERE {$where} ORDER BY {$sort} LIMIT {$limit_str})";
         $list = $db->query($sql);
 
@@ -309,7 +310,5 @@ class GoodsPriceService extends BaseService
 
         return $list;
     }
-
-
 
 }

@@ -10,7 +10,7 @@ class HandleTrophy extends BaseService
 
         while ($redis->lLen($sync_mq_key) > 0) {
             $psn_id = $redis->rPop($sync_mq_key);
-            $offset = 0;
+            $offset = 30;
             $limit = 100;
             $sync_time_whole_key = redis_key('sync_time_trophy_title_whole', $psn_id);
             while (true) {
