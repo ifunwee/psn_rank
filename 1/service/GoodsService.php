@@ -191,22 +191,30 @@ class GoodsService extends BaseService
 
         //获取奖杯数据
         if (!empty($game_info['np_communication_id'])) {
-            $service = s('Profile');
-            $game_trophy = $service->getTrophyInfo($game_info['np_communication_id'], 0);
-            $bronze = $game_trophy['game_info']['defined_trophies']['bronze'];
-            $silver = $game_trophy['game_info']['defined_trophies']['silver'];
-            $gold = $game_trophy['game_info']['defined_trophies']['gold'];
-            $platinum = $game_trophy['game_info']['defined_trophies']['platinum'];
-            $trophy_icon = $game_trophy['trophy_info']['trophy_icon_url'] ? : $game_trophy['game_info']['trophy_title_icon_url'];
-            $trophy_difficulty = $game_trophy['trophy_info']['trophy_earned_rate'] ? : '';
+            $redis = r('psn_redis');
+            $redis_key = redis_key('trophy_title', $game_info['np_communication_id']);
+            $trophy_title = $redis->hGetAll($redis_key);
+            $redis_key = redis_key('trophy_info', $game_info['np_communication_id'], 0);
+            $trophy_info = $redis->hGetAll($redis_key);
+
+            if (empty($trophy_title) || empty($trophy_info)) {
+                $service = s('TrophyDetail');
+                $service->syncUserTrophyDetail(null, $game_info['np_communication_id']);
+
+                $redis_key = redis_key('trophy_title', $game_info['np_communication_id']);
+                $trophy_title = $redis->hGetAll($redis_key);
+                $redis_key = redis_key('trophy_info', $game_info['np_communication_id'], 0);
+                $trophy_info = $redis->hGetAll($redis_key);
+            }
+
             $trophy = array(
-                'total' => strval($bronze + $silver + $gold + $platinum),
-                'bronze' => strval($bronze),
-                'silver' => strval($silver),
-                'gold' => strval($gold),
-                'platinum' => strval($platinum),
-                'trophy_icon' => strval($trophy_icon),
-                'trophy_difficulty' => strval($trophy_difficulty),
+                'total' => strval($trophy_title['bronze'] + $trophy_title['silver'] + $trophy_title['gold'] + $trophy_title['platinum']),
+                'bronze' => strval($trophy_title['bronze']),
+                'silver' => strval($trophy_title['silver']),
+                'gold' => strval($trophy_title['gold']),
+                'platinum' => strval($trophy_title['platinum']),
+                'trophy_icon' => strval($trophy_info['icon_url']),
+                'trophy_difficulty' => strval($trophy_info['earned_rate']),
             );
             $info['trophy'] = $trophy;
         }

@@ -824,7 +824,7 @@ class HandlePs4Game extends BaseService
         while (true) {
             $start = ($page - 1) * $limit;
             $limit_str = " limit {$start}, {$limit}";
-            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id <> '' order by is_main desc, rating_total desc) as t  group by np_communication_id order by id desc";
+            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id <> '' order by is_main desc, status desc, rating_total desc) as t  group by np_communication_id order by id desc";
             $sql = $sql . $limit_str;
             $list = $db->query($sql);
             if (empty($list)) {
@@ -842,7 +842,7 @@ class HandlePs4Game extends BaseService
         while (true) {
             $start = ($page - 1) * $limit;
             $limit_str = " limit {$start}, {$limit}";
-            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id = '' and (`parent_np_title_id` = '' or `parent_np_title_id` = `np_title_id`) order by is_main desc, rating_total desc) as t group by np_title_id order by id desc ";
+            $sql = "select *, min(`release_date`) as min_release_date from (select * from goods where np_communication_id = '' and (`parent_np_title_id` = '' or `parent_np_title_id` = `np_title_id`) order by is_main desc, status desc, rating_total desc) as t group by np_title_id order by id desc ";
             $sql = $sql . $limit_str;
             $list = $db->query($sql);
             if (empty($list)) {
@@ -891,7 +891,7 @@ class HandlePs4Game extends BaseService
         }
 
         foreach ($list as $game) {
-            $sql = "select a.goods_id from (select * from goods where game_id = {$game['game_id']}) as a left join goods_price as b on a.goods_id = b.goods_id where b.`discount` > 0 || b.`plus_discount` > 0";
+            $sql = "select a.goods_id from (select * from goods where game_id = {$game['game_id']}) as a left join goods_price as b on a.goods_id = b.goods_id where (b.`discount` > 0 || b.`plus_discount` > 0) and b.`status` >= 1";
             $result = $db->query($sql);
             if (empty($result)) {
                 $data['is_discount'] = 0;
@@ -1023,7 +1023,7 @@ class HandlePs4Game extends BaseService
 
             $db->startTrans();
             try {
-                $where = "np_title_id = '{$goods['np_title_id']}' or np_communication_id = '{$goods['np_communication_id']}'";
+                $where = "np_title_id = '{$goods['np_title_id']}' and status = 1";
                 $info = $db->find($where);
                 if (empty($info)) {
                     $game_id = $this->generateGameId();
@@ -1039,14 +1039,13 @@ class HandlePs4Game extends BaseService
                     $data['np_communication_id'] = $game['np_communication_id'];
                     $data['origin'] = 2;
                     $data['is_vr_support'] = $is_vr_support;
-//                    $data['cover_image'] = $game['cover_image'];
+                    $data['cover_image'] = $game['cover_image'];
 //                    $data['language_support'] = $game['language_support'];
 //                    $data['is_chinese_support'] = $game['is_chinese_support'];
-//                    $data['rating_total'] = $game['rating_total'];
-//                    $data['rating_score'] = $game['rating_score'];
-//                    $data['screenshots'] = $game['screenshots'];
-//                    $data['videos'] = $game['videos'];
-//                    $data['status'] = $game['status'];
+                    $data['rating_total'] = $game['rating_total'];
+                    $data['rating_score'] = $game['rating_score'];
+                    $data['screenshots'] = $game['screenshots'];
+                    $data['videos'] = $game['videos'];
                     $data['update_time'] = time();
 
                     $db->update($data, $where);
@@ -1113,7 +1112,7 @@ class HandlePs4Game extends BaseService
 
             $db->startTrans();
             try {
-                $where = "np_title_id = '{$goods['np_title_id']}' or np_communication_id = '{$goods['np_communication_id']}'";
+                $where = "(np_title_id = '{$goods['np_title_id']}' or np_communication_id = '{$goods['np_communication_id']}') and status = 1";
                 $info = $db->find($where);
                 if (empty($info)) {
                     $game_id = $this->generateGameId();
@@ -1131,14 +1130,13 @@ class HandlePs4Game extends BaseService
                     $data['main_goods_id'] = $game['main_goods_id'];
                     $data['is_vr_support'] = $is_vr_support;
                     $data['origin'] = 1;
-//                    $data['cover_image'] = $game['cover_image'];
+                    $data['cover_image'] = $game['cover_image'];
 //                    $data['language_support'] = $game['language_support'];
 //                    $data['is_chinese_support'] = $game['is_chinese_support'];
-//                    $data['rating_total'] = $game['rating_total'];
-//                    $data['rating_score'] = $game['rating_score'];
-//                    $data['screenshots'] = $game['screenshots'];
-//                    $data['videos'] = $game['videos'];
-//                    $data['status'] = $game['status'];
+                    $data['rating_total'] = $game['rating_total'];
+                    $data['rating_score'] = $game['rating_score'];
+                    $data['screenshots'] = $game['screenshots'];
+                    $data['videos'] = $game['videos'];
                     $data['update_time'] = time();
 
                     $db->update($data, $where);

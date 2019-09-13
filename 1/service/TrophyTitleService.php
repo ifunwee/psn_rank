@@ -96,16 +96,17 @@ class TrophyTitleService extends BaseService
         }
 
         if (!empty($list)) {
+            $top_list = array_slice($list, 0, 10);
             $sync_mq_key = redis_key('mq_sync_user_trophy_detail');
             $data['psn_id'] = $psn_id;
             if (empty($sync_time) || $sync_detail == 1) {
                 //首次同步则不对比奖杯 直接推入奖杯详情同步队列
-                foreach ($list as $trophy) {
+                foreach ($top_list as $trophy) {
                     $data['np_communication_id'] = $trophy['np_communication_id'];
                     $redis->lPush($sync_mq_key, json_encode($data));
                 }
             } else {
-                foreach ($list as $trophy) {
+                foreach ($top_list as $key => $trophy) {
                     $bronze = (int)$trophy['user_trophy']['bronze'];
                     $silver = (int)$trophy['user_trophy']['silver'];
                     $gold = (int)$trophy['user_trophy']['gold'];
@@ -116,9 +117,11 @@ class TrophyTitleService extends BaseService
                     $origin_trophy = $redis->hGetAll($redis_key);
                     $origin_trophy_num = $origin_trophy['bronze'] + $origin_trophy['silver'] + $origin_trophy['gold'] + $origin_trophy['platinum'];
 
+                    log::i("a $current_trophy_num  b $origin_trophy_num");
                     if ($current_trophy_num > $origin_trophy_num) {
                         $data['np_communication_id'] = $trophy['np_communication_id'];
                         $redis->lPush($sync_mq_key, json_encode($data));
+                        log::i("{$psn_id} {$trophy['np_communication_id']} 成功推入奖杯同步队列");
                     } else {
                         log::n("{$psn_id} {$trophy['np_communication_id']} {$origin_trophy_num} {$current_trophy_num} 奖杯数未改变，不推入同步详情任务");
                     }
@@ -356,11 +359,11 @@ class TrophyTitleService extends BaseService
 
             $data = array(
                 'np_communication_id' => $trophy['np_communication_id'],
-                'name' => $trophy['name'],
-                'detail' => $trophy['detail'],
-                'icon_url' => $trophy['icon_url'],
-                'small_icon_url' => $trophy['small_icon_url'],
-                'platform' => $trophy['platform'],
+                'name' => (string)$trophy['name'],
+                'detail' => (string)$trophy['detail'],
+                'icon_url' => (string)$trophy['icon_url'],
+                'small_icon_url' => (string)$trophy['small_icon_url'],
+                'platform' => (string)$trophy['platform'],
                 'has_trophy_group' => (int)$trophy['has_trophy_group'],
                 'bronze' => (int)$trophy['defined_trophy']['bronze'],
                 'silver' => (int)$trophy['defined_trophy']['silver'],

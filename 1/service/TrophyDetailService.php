@@ -68,7 +68,6 @@ class TrophyDetailService extends BaseService
         $db->tableName = 'trophy_group';
         $where['np_communication_id'] = $np_communication_id;
         $group = $db->findAll($where, 'group_id, name', 'id asc');
-
         if (empty($group)) {
             $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
             if ($this->hasError()) {
@@ -82,7 +81,6 @@ class TrophyDetailService extends BaseService
         if (empty($group)) {
             return $this->setError('get_trophy_group_fail', '获取奖杯组异常');
         }
-
 
         foreach ($group as $info) {
             $this->syncUserTrophyProgress($psn_id, $np_communication_id, $info['group_id']);
@@ -164,7 +162,7 @@ class TrophyDetailService extends BaseService
             );
 
 
-            $group[] = $info;
+            $group[$info['group_id']] = $info;
 
             $this->saveTrophyGroupInfo($info);
             if ($this->hasError()) {
@@ -174,7 +172,29 @@ class TrophyDetailService extends BaseService
             }
         }
 
-        return $group;
+        $trophy_title = $group['default'];
+        $data = array(
+            'np_communication_id' => $trophy_title['np_communication_id'],
+            'name' => $trophy_title['name'],
+            'detail' => $trophy_title['detail'],
+            'icon_url' => $trophy_title['icon_url'],
+            'small_icon_url' => $trophy_title['small_icon_url'],
+            'platform' => $trophy_title['platform'],
+            'defined_trophy' => array(
+                'bronze' => (int)$trophy_title['bronze'],
+                'silver' => (int)$trophy_title['silver'],
+                'gold' => (int)$trophy_title['gold'],
+                'platinum' => (int)$trophy_title['platinum'],
+            ),
+
+        );
+        $service = s('TrophyTitle');
+        $service->saveTrophyTitleInfo($data);
+        if ($service->hasError()) {
+            log::e(json_encode($service->getError()));
+        }
+
+        return array_values($group);
     }
 
     public function saveTrophyGroupInfo($info)
@@ -300,9 +320,10 @@ class TrophyDetailService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('trophy_info', $np_communication_id, $info['trophy_id']);
-        $exist = $redis->hGet($redis_key, 'trophy_id');
+        $trophy_info = $redis->hGetAll($redis_key);
 
-        if (!empty($exist)) {
+        if (!empty($trophy_info) && $trophy_info['earned_rate'] == $info['earned_rate']) {
+            log::i("奖杯获取率一致 无需更新 {$trophy_info['earned_rate']} {$info['earned_rate']}");
             return false;
         }
 
