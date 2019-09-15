@@ -199,7 +199,7 @@ class GoodsService extends BaseService
 
             if (empty($trophy_title) || empty($trophy_info)) {
                 $service = s('TrophyDetail');
-                $service->syncUserTrophyDetail(null, $game_info['np_communication_id']);
+                $service->syncUserTrophyDetail(null, $game_info['np_communication_id'], true);
 
                 $redis_key = redis_key('trophy_title', $game_info['np_communication_id']);
                 $trophy_title = $redis->hGetAll($redis_key);

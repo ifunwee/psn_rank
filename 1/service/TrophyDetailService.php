@@ -44,7 +44,7 @@ class TrophyDetailService extends BaseService
 
     }
 
-    public function syncUserTrophyDetail($psn_id, $np_communication_id)
+    public function syncUserTrophyDetail($psn_id, $np_communication_id, $sync_trophy_group = false)
     {
         if (empty($psn_id)) {
             $psn_id = self::TROPHY_HELPER;
@@ -68,7 +68,7 @@ class TrophyDetailService extends BaseService
         $db->tableName = 'trophy_group';
         $where['np_communication_id'] = $np_communication_id;
         $group = $db->findAll($where, 'group_id, name', 'id asc');
-        if (empty($group)) {
+        if (empty($group) || $sync_trophy_group == true) {
             $group = $this->syncTrophyGroupInfoFromSony($np_communication_id);
             if ($this->hasError()) {
                 $data['psn_id'] = $psn_id;
