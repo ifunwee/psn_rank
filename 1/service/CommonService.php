@@ -255,4 +255,21 @@ class CommonService extends BaseService
             exit;
         }
     }
+
+    public function buildJWT($payload)
+    {
+        $config['key'] = c('jwt_sign_key');
+        $service = s('Jwt', $config);
+        $data['token'] = $service->getToken($payload);
+        return $data;
+    }
+
+    public function parseJWT($token)
+    {
+        $config['key'] = c('jwt_sign_key');
+        $service = s('Jwt', $config);
+        $payload = $service->verifyToken($token);
+        return $payload;
+    }
+
 }
