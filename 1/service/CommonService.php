@@ -268,11 +268,11 @@ class CommonService extends BaseService
         return $data;
     }
 
-    public function parseJWT($token)
+    public function parseJWT($jwt)
     {
         $config['key'] = c('jwt_sign_key');
         $service = s('Jwt', $config);
-        $payload = $service->verifyToken($token);
+        $payload = $service->verifyToken($jwt);
 
         if ($service->hasError()) {
             return $this->setError($service->getError());
@@ -281,9 +281,13 @@ class CommonService extends BaseService
         return $payload;
     }
 
-    public function getUserIdByJWT($token)
+    public function getUserIdByToken($jwt)
     {
-        $payload = $this->parseJWT($token);
+        if (empty($jwt)) {
+            return $this->setError('param_jwt_is_empty');
+        }
+
+        $payload = $this->parseJWT($jwt);
         if ($this->hasError()) {
             return $this->setError($this->getError());
         }
