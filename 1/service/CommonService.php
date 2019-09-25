@@ -281,22 +281,6 @@ class CommonService extends BaseService
         return $payload;
     }
 
-    public function getUserIdByToken($jwt)
-    {
-        if (empty($jwt)) {
-            return $this->setError('param_jwt_is_empty');
-        }
 
-        $payload = $this->parseJWT($jwt);
-        if ($this->hasError()) {
-            return $this->setError($this->getError());
-        }
-
-        if (empty($payload['user_id'])) {
-            return $this->setError('parse_user_id_empty');
-        }
-
-        return $payload['user_id'];
-    }
 
 }
