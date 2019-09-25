@@ -40,7 +40,7 @@ class LotteryService extends BaseService
             "status" => $lottery_info['status'] ? : 0,
             "lottery_time" => $lottery_info['lottery_time'] ? : 0,
             "lottery_num" => $lottery_info['lottery_num'] ? : 0,
-            "prize_winner" => $lottery_info['prize_winner'] ? json_decode($lottery_info['prize_winner']) : array(),
+            "prize_winner" => $lottery_info['prize_winner'] ? array_values(json_decode($lottery_info['prize_winner'], true)) : array(),
             "is_win" => $data['is_win'] = $this->isWinPrize($lottery_id, $user_id),
         );
 

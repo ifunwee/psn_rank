@@ -94,7 +94,7 @@ class HandleLottery
                 $prize_winner = json_encode($winner_by_ticket, 256);
                 $db->tableName = 'lottery';
                 $data = array(
-                    'status' => 1,
+                    'status' => 2,
                     'lottery_result' => $lottery_result,
                     'prize_winner' => $prize_winner,
                 );

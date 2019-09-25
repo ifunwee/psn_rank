@@ -30,7 +30,7 @@ class LotteryInterface extends BaseInterface
     public function getLotteryTicket()
     {
         $lottery_id = getParam('lottery_id');
-        $service = s('Common');
+        $service = s('User');
         $user_id = $service->getUserIdByToken(b('jwt'));
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
@@ -49,7 +49,7 @@ class LotteryInterface extends BaseInterface
     public function getLotteryDetail()
     {
         $lottery_id = getParam('lottery_id');
-        $service = s('Common');
+        $service = s('User');
         $user_id = $service->getUserIdByToken(b('jwt'));
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
