@@ -29,7 +29,10 @@ class LotteryService extends BaseService
 
     public function getLotteryDetail($lottery_id, $user_id)
     {
+        $redis = r('psn_redis');
         $lottery_info = $this->getLotteryInfo($lottery_id);
+        $lottery_ticket_publish_key = redis_key('lottery_ticket_publish', $lottery_id);
+        $lottery_join_num_key = redis_key('lottery_join_num', $lottery_id);
 
         $data = array(
             "prize_title" => $lottery_info['prize_title'] ? : '',
@@ -40,8 +43,10 @@ class LotteryService extends BaseService
             "status" => $lottery_info['status'] ? : 0,
             "lottery_time" => $lottery_info['lottery_time'] ? : 0,
             "lottery_num" => $lottery_info['lottery_num'] ? : 0,
+            "lottery_ticket_publish" => $redis->scard($lottery_ticket_publish_key) ? : 0,
+            "lottery_join_num" => $redis->scard($lottery_join_num_key) ? : 0,
             "prize_winner" => $lottery_info['prize_winner'] ? array_values(json_decode($lottery_info['prize_winner'], true)) : array(),
-            "is_win" => $data['is_win'] = $this->isWinPrize($lottery_id, $user_id),
+            "is_win" => !empty($user_id) ? $this->isWinPrize($lottery_id, $user_id) : 0,
         );
 
         return $data;
@@ -58,17 +63,11 @@ class LotteryService extends BaseService
         }
 
         $redis = r('psn_redis');
-        $interval_limit_key = redis_key('lottery_interval_limit', $user_id);
-        $allow = $redis->setnx($interval_limit_key, time());
-        $redis->expire($interval_limit_key, 10);
+        $interval_lock_key = redis_key('lottery_interval_lock', $user_id);
+        $allow = $redis->setnx($interval_lock_key, time());
+        $redis->expire($interval_lock_key, 10);
         if (!$allow) {
             return $this->setError('lottery_interval_limit', '您实在是太热情了，休息一会吧');
-        }
-
-        $day_limit_key = redis_key('lottery_day_limit', date('Ymd'), $user_id, $lottery_id);
-        $num = $redis->get($day_limit_key);
-        if ($num >= 10) {
-            return $this->setError('lottery_day_limit', '当日获得的小手柄已达上限，明日再来喔');
         }
 
         $lottery_info = $this->getLotteryInfo($lottery_id);
@@ -81,7 +80,14 @@ class LotteryService extends BaseService
             return $this->setError('lottery_time_not_allow', '抽奖活动未开始或已结束');
         }
 
-        $lottery_ticket = $this->generateLotteryTicket($lottery_id);
+        $day_limit_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $lottery_id);
+        $num = $redis->get($day_limit_key);
+        if ($num >= 5) {
+            return $this->setError('lottery_day_limit', '当日获得的小手柄已达上限，明日再来喔');
+        }
+
+
+        $lottery_ticket = $this->generateLotteryTicket($lottery_id, $lottery_info['lottery_time']);
         if ($this->hasError()) {
             return $this->setError($this->getError());
         }
@@ -93,11 +99,21 @@ class LotteryService extends BaseService
 
         $redis->incr($day_limit_key);
 
+        //记录我参与的游戏
+        $lottery_my_join_key = redis_key('lottery_my_join', $user_id);
+        $exist = $redis->zScore($lottery_my_join_key, $user_id);
+        if (empty($exist)) {
+            $redis->zadd('lottery_my_join', time(), $user_id);
+        }
+
+        $lottery_join_num_key = redis_key('lottery_join_num', $lottery_id);
+        $redis->sadd($lottery_join_num_key, $user_id);
+
         $data['lottery_ticket'] = $lottery_ticket;
         return $data;
     }
 
-    public function generateLotteryTicket($lottery_id)
+    public function generateLotteryTicket($lottery_id, $lottery_time)
     {
         $redis = r('psn_redis');
         $redis_key = redis_key('lottery_ticket_publish', $lottery_id);
@@ -110,6 +126,7 @@ class LotteryService extends BaseService
                 $i++;
             } else {
                 $redis->sAdd($redis_key, $ticket);
+                $redis->expire($redis_key, $lottery_time + 86400);
                 return $ticket;
             }
 

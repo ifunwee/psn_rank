@@ -52,44 +52,44 @@ class HandleLottery
                 $page++;
             }
 
-            $winner_by_ticket = array();
-            $winner = array();
-            $prize_lottery_ticket = array();
-
-            while (($count = $redis->lLen($lottery_ticket_pool_key)) > 0) {
-                $rand = mt_rand(0, $count-1);
-                echo "id:{$info['id']} count:$count rand:$rand \r\n";
-                $lottery_ticket_json = $redis->lIndex($lottery_ticket_pool_key, $rand);
-                if (empty($lottery_ticket_json)) {
-                    echo "开奖抽出的抽奖券为空 \r\n";
-                    continue;
-                }
-
-                $lottery_ticket_info = json_decode($lottery_ticket_json, true);
-                echo "{$lottery_ticket_info['user_id']} \r\n";
-                if (in_array($lottery_ticket_info['user_id'], $winner)) {
-                    continue;
-                }
-
-                $lottery_ticket_info['create_time'] = time();
-                $winner[] = $lottery_ticket_info['user_id'];
-                $winner_by_ticket[$lottery_ticket_info['lottery_ticket']] = $lottery_ticket_info;
-                $prize_lottery_ticket[] = $lottery_ticket_info['lottery_ticket'];
-                $winner_num = count($winner);
-                echo "winner_num:{$winner_num}  lottery_num:{$info['lottery_num']} \r\n";
-                if ($winner_num >= $info['lottery_num']) {
-                    break;
-                }
-            }
-
-            $user_info = $user_service->getUserInfoByUserId($winner, array('nick_name', 'avatar_url'));
-            foreach ($winner_by_ticket as &$value) {
-                $value['nickname'] = $user_info[$value['user_id']]['nick_name'];
-                $value['avatar_url'] = $user_info[$value['user_id']]['avatar_url'];
-            }
-            unset($value);
-
             try {
+                $winner_by_ticket = array();
+                $winner = array();
+                $prize_lottery_ticket = array();
+
+                while (($count = $redis->lLen($lottery_ticket_pool_key)) > 0) {
+                    $rand = mt_rand(0, $count-1);
+                    echo "id:{$info['id']} count:$count rand:$rand \r\n";
+                    $lottery_ticket_json = $redis->lIndex($lottery_ticket_pool_key, $rand);
+                    if (empty($lottery_ticket_json)) {
+                        echo "开奖抽出的抽奖券为空 \r\n";
+                        continue;
+                    }
+
+                    $lottery_ticket_info = json_decode($lottery_ticket_json, true);
+                    echo "{$lottery_ticket_info['user_id']} \r\n";
+                    if (in_array($lottery_ticket_info['user_id'], $winner)) {
+                        continue;
+                    }
+
+                    $lottery_ticket_info['create_time'] = time();
+                    $winner[] = $lottery_ticket_info['user_id'];
+                    $winner_by_ticket[$lottery_ticket_info['lottery_ticket']] = $lottery_ticket_info;
+                    $prize_lottery_ticket[] = $lottery_ticket_info['lottery_ticket'];
+                    $winner_num = count($winner);
+                    echo "winner_num:{$winner_num}  lottery_num:{$info['lottery_num']} \r\n";
+                    if ($winner_num >= $info['lottery_num']) {
+                        break;
+                    }
+                }
+
+                $user_info = $user_service->getUserInfoByUserId($winner, array('nick_name', 'avatar_url'));
+                foreach ($winner_by_ticket as &$value) {
+                    $value['nickname'] = $user_info[$value['user_id']]['nick_name'];
+                    $value['avatar_url'] = $user_info[$value['user_id']]['avatar_url'];
+                }
+                unset($value);
+
                 $lottery_result = implode(',', $prize_lottery_ticket);
                 $prize_winner = json_encode($winner_by_ticket, 256);
                 $db->tableName = 'lottery';

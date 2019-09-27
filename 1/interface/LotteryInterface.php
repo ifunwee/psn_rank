@@ -52,7 +52,7 @@ class LotteryInterface extends BaseInterface
         $service = s('User');
         $user_id = $service->getUserIdByToken(b('jwt'));
         if ($service->hasError()) {
-            $this->respondFailure($service->getError());
+            $user_id = '';
         }
 
         $service      = s('Lottery');
