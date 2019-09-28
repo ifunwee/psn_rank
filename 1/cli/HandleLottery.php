@@ -90,6 +90,14 @@ class HandleLottery
                 }
                 unset($value);
 
+                $sql = "select count(*) as publish_num from lottery_ticket where lottery_id = {$info['id']}";
+                $result = $db->query($sql);
+                $publish_num = $result[0]['publish_num'] ? : 0;
+
+                $sql = "select count(DISTINCT user_id) as join_num from lottery_ticket where lottery_id = {$info['id']}";
+                $result = $db->query($sql);
+                $join_num = $result[0]['join_num'] ? : 0;
+
                 $lottery_result = implode(',', $prize_lottery_ticket);
                 $prize_winner = json_encode($winner_by_ticket, 256);
                 $db->tableName = 'lottery';
@@ -97,7 +105,10 @@ class HandleLottery
                     'status' => 2,
                     'lottery_result' => $lottery_result,
                     'prize_winner' => $prize_winner,
+                    'lottery_publish_num' => $publish_num,
+                    'lottery_join_num' => $join_num,
                 );
+
                 $condition = array();
                 $condition['id'] = $info['id'];
                 $db->update($data, $condition);
