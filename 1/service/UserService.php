@@ -10,8 +10,8 @@ class UserService extends BaseService
 
         $service = s('Common');
         $payload = $service->parseJWT($jwt);
-        if ($this->hasError()) {
-            return $this->setError($this->getError());
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
         }
 
         if (empty($payload['user_id'])) {
