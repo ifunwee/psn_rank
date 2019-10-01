@@ -12,6 +12,9 @@ class LotteryService extends BaseService
             return $data['list'] = null;
         }
 
+        $redis = r('psn_redis');
+        $day_limit = c('lottery_day_limit') ? : 5;
+
         foreach ($list as &$value) {
             $value['lottery_join_num'] = $this->getLotteryJoinNum($value['id']);
 
@@ -20,6 +23,10 @@ class LotteryService extends BaseService
             } else {
                 $value['my_lottery_ticket_num'] = 0;
             }
+
+            $day_join_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $value['id']);
+            $join_num = $redis->get($day_join_key) ? : 0;
+            $value['left_chance'] = $day_limit - $join_num >= 0 ? $day_limit - $join_num : 0;
         }
 
         unset($value);
@@ -91,7 +98,7 @@ class LotteryService extends BaseService
                 'win_lottery_ticket' => $win_lottery_ticket ? : '',
                 'rank' => is_numeric($rank) ? $rank + 1 : '-',
                 'lottery_ticket_num' => $my_lottery_ticket_num ? : 0,
-                'left_chance' => $day_limit - $join_num,
+                'left_chance' => $day_limit - $join_num >= 0 ? $day_limit - $join_num : 0,
             ),
         );
 
@@ -165,7 +172,7 @@ class LotteryService extends BaseService
 
         $data['lottery_ticket'] = $lottery_ticket;
         $data['lottery_ticket_num'] = floor($score);
-        $data['left_chance'] = $day_limit - $join_num;
+        $data['left_chance'] = $day_limit - $join_num >= 0 ? $day_limit - $join_num : 0;
         return $data;
     }
 
@@ -331,8 +338,15 @@ class LotteryService extends BaseService
 
     }
 
-    public function getMyLotteryTicketList($lottery_id, $user_id, $page = 1)
+    public function getUserLotteryTicketList($lottery_id, $user_id, $page = 1)
     {
+        if (empty($lottery_id)) {
+            return $this->setError('param_lottery_id_empty');
+        }
+
+        if (empty($user_id)) {
+            return $this->setError('param_user_id_empty');
+        }
 
         $where['lottery_id'] = $lottery_id;
         $where['user_id'] = $user_id;

@@ -76,6 +76,7 @@ class LotteryInterface extends BaseInterface
     public function getMyLotteryTicketList()
     {
         $lottery_id = getParam('lottery_id');
+        $page = getParam('page', 1);
         $service = s('User');
         $user_id = $service->getUserIdByToken(b('jwt'));
         if ($service->hasError()) {
@@ -83,7 +84,23 @@ class LotteryInterface extends BaseInterface
         }
 
         $service      = s('Lottery');
-        $result = $service->getMyLotteryTicketList($lottery_id, $user_id);
+        $result = $service->getUserLotteryTicketList($lottery_id, $user_id, $page);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess($result);
+    }
+
+    public function getUserLotteryTicketList()
+    {
+        $lottery_id = getParam('lottery_id');
+        $user_id = getParam('user_id');
+        $page = getParam('page', 1);
+
+        $service      = s('Lottery');
+        $result = $service->getUserLotteryTicketList($lottery_id, $user_id, $page);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
