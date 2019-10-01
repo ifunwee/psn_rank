@@ -362,13 +362,13 @@ class HandlePs4Game extends BaseService
         //EAAccess 特殊折扣处理
         if ((int)$discount > 0 && $sku_reward[$discount]['isEAAccess'] === true) {
             $sale_price = $sku_price;
-            $origin_price = 0;
+            $origin_price = $sku_price;
             $discount = 0;
         }
 
         if ((int)$plus_discount > 0 && $sku_reward[$plus_discount]['isEAAccess'] === true) {
             $plus_sale_price = $sku_price;
-            $plus_origin_price = 0;
+            $plus_origin_price = $sku_price;
             $plus_discount = 0;
         }
 
@@ -397,7 +397,11 @@ class HandlePs4Game extends BaseService
             $data = array(
                 'goods_id' => $item['id'],
                 'price' => $info['sale_price'],
+                'origin_price' => $info['origin_price'],
+                'discount' => $info['discount'],
                 'plus_price' => $info['plus_sale_price'],
+                'plus_origin_price' => $info['plus_origin_price'],
+                'plus_discount' => $info['plus_discount'],
                 'start_date' => $info['start_date'],
                 'end_date' => $info['end_date'],
                 'date' => strtotime(date('Y-m-d', time())),
@@ -440,7 +444,11 @@ class HandlePs4Game extends BaseService
                 $data = array(
                     'goods_id' => $item['id'],
                     'price' => $info['sale_price'],
+                    'origin_price' => $info['origin_price'],
+                    'discount' => $info['discount'],
                     'plus_price' => $info['plus_sale_price'],
+                    'plus_origin_price' => $info['plus_origin_price'],
+                    'plus_discount' => $info['plus_discount'],
                     'start_date' => $info['start_date'],
                     'end_date' => $info['end_date'],
                     'date' => strtotime(date('Y-m-d', time())),

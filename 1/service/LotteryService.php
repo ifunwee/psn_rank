@@ -55,6 +55,7 @@ class LotteryService extends BaseService
         $win_lottery_ticket = '';
         $rank = '-';
         $user_info = array();
+        $join_num = 0;
 
         if (!empty($user_id)) {
             $win_lottery_ticket = $this->isWin($lottery_id, $user_id);
@@ -64,8 +65,11 @@ class LotteryService extends BaseService
 
             $service = s('User');
             $user_info = $service->getUserInfoByUserId($user_id, array('nick_name', 'avatar_url'));
+            $day_join_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $lottery_id);
+            $join_num = $redis->get($day_join_key) ? : 0;
         }
 
+        $day_limit = c('lottery_day_limit') ? : 5;
         $data = array(
             'info' => array(
                 "prize_title" => $lottery_info['prize_title'] ? : '',
@@ -87,6 +91,7 @@ class LotteryService extends BaseService
                 'win_lottery_ticket' => $win_lottery_ticket ? : '',
                 'rank' => is_numeric($rank) ? $rank + 1 : '-',
                 'lottery_ticket_num' => $my_lottery_ticket_num ? : 0,
+                'left_chance' => $day_limit - $join_num,
             ),
         );
 
@@ -117,16 +122,20 @@ class LotteryService extends BaseService
         }
 
         $now = time();
-        if ($now < $lottery_info['start_time'] || $now > $lottery_info['end_time']) {
-            return $this->setError('lottery_time_not_allow', '抽奖活动未开始或已结束');
+        if ($now < $lottery_info['start_time']) {
+            return $this->setError('lottery_is_not_start', '抽奖活动未开始');
         }
 
-        $day_limit_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $lottery_id);
-        $num = $redis->get($day_limit_key);
-        if ($num >= 5) {
-            return $this->setError('lottery_day_limit', '当日获得的小手柄已达上限，明日再来喔');
+        if ($now >= $lottery_info['end_time']) {
+            return $this->setError('lottery_already_end', '抽奖活动已结束');
         }
 
+        $day_join_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $lottery_id);
+        $join_num = $redis->get($day_join_key) ? : 0;
+        $day_limit = c('lottery_day_limit') ? : 5;
+        if ($join_num >= $day_limit) {
+            return $this->setError('lottery_day_limit', '当日获得的奖券已达上限，明日再来喔');
+        }
 
         $lottery_ticket = $this->generateLotteryTicket($lottery_id, $lottery_info['lottery_time']);
         if ($this->hasError()) {
@@ -138,14 +147,14 @@ class LotteryService extends BaseService
             return $this->setError($this->getError());
         }
 
-        $redis->incr($day_limit_key);
+        $join_num = $redis->incr($day_join_key);
 
-        //记录我参与的游戏
-        $lottery_my_join_key = redis_key('lottery_my_join', $user_id);
-        $exist = $redis->zScore($lottery_my_join_key, $user_id);
-        if (empty($exist)) {
-            $redis->zAdd('lottery_my_join', time(), $user_id);
-        }
+        //记录我参与的抽奖
+//        $lottery_my_join_key = redis_key('lottery_my_join', $user_id);
+//        $exist = $redis->zScore($lottery_my_join_key, $user_id);
+//        if (empty($exist)) {
+//            $redis->zAdd('lottery_my_join', time(), $user_id);
+//        }
 
         $lottery_ticket_rank_key = redis_key('lottery_ticket_rank', $lottery_id);
         $score = $redis->zIncrBy($lottery_ticket_rank_key, 1, $user_id);
@@ -156,6 +165,7 @@ class LotteryService extends BaseService
 
         $data['lottery_ticket'] = $lottery_ticket;
         $data['lottery_ticket_num'] = floor($score);
+        $data['left_chance'] = $day_limit - $join_num;
         return $data;
     }
 
