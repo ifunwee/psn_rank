@@ -446,9 +446,11 @@ class HandlePs4Game extends BaseService
                     'price' => $info['sale_price'],
                     'origin_price' => $info['origin_price'],
                     'discount' => $info['discount'],
+                    'tag' => $info['tag'],
                     'plus_price' => $info['plus_sale_price'],
                     'plus_origin_price' => $info['plus_origin_price'],
                     'plus_discount' => $info['plus_discount'],
+                    'plus_tag' => $info['plus_tag'],
                     'start_date' => $info['start_date'],
                     'end_date' => $info['end_date'],
                     'date' => strtotime(date('Y-m-d', time())),
@@ -684,7 +686,7 @@ class HandlePs4Game extends BaseService
         $date = strtotime(date('Y-m-d', time()));
         $redis = r('psn_redis');
         $db = pdo();
-        $sql = "select a.*,b.plus_origin_price,b.plus_tag,b.plus_discount from goods_price_history a left join goods_price b on a.goods_id = b.goods_id where a.date = {$date} and a.start_date > 0";
+        $sql = "select * from goods_price_history where date = {$date} and start_date > 0 and (discount > 0 or plus_discount > 0)";
         $list = $db->query($sql);
         if (empty($list)) {
             log::n('discount_goods_is_empty');
