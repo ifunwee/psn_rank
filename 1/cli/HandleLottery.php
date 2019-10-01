@@ -126,4 +126,83 @@ class HandleLottery
 
         }
     }
+
+    public function notice()
+    {
+        $db = pdo();
+        $db->tableName = 'lottery';
+        $where['is_notice'] = 0;
+        $where['status'] = 2;
+        $info = $db->find($where);
+
+        if (empty($info)) {
+            echo "没有需要开奖通知的抽奖活动";
+            return false;
+        }
+
+        $redis = r('psn_redis');
+        $redis_key = redis_key('lottery_notice_lock', $info['id']);
+        $allow = $redis->setnx($redis_key, time());
+        $redis->expire($redis_key, time() + 86400);
+
+        if (!$allow) {
+            echo "lottery:notice_lock:{$info['id']} \r\n";
+            return false;
+        }
+
+        $data['is_notice'] = 1;
+        $db->update($data, array('id' => $info['id']));
+
+        $sql = "select a.user_id,a.open_id,a.appcode from user a RIGHT JOIN (select user_id from lottery_ticket where lottery_id = {$info['id']} GROUP BY user_id) b ON a.user_id = b.user_id";
+        $list = $db->query($sql);
+
+        if (empty($list)) {
+            echo "没有要推送的参与用户";
+            return false;
+        }
+
+        foreach ($list as $value) {
+            if (!is_numeric($value['appcode'])) {
+                echo "无法识别的appcode: {$value['appcode']}";
+                continue;
+            }
+
+            $service = s('MiniProgram', $value['appcode']);
+            $open_id = $value['open_id'];
+            $content['touser'] = $open_id;
+            $content['template_id'] = 'BOQSUtVluGMal68HJAh6XZlO2X7kxg8_V8WCo_VGCkA';
+            $form_id = $service->getFormId($open_id);
+
+            if ($service->hasError()) {
+                echo ("get_form_id_fail: $open_id" . json_encode($service->getError()) . "\r\n");
+                log::w("get_form_id_fail: $open_id " . json_encode($service->getError()));
+                $service->flushError();
+                continue;
+            }
+            $content['form_id'] = $form_id['form_id'];
+            $content['data'] = array(
+                'keyword1' => array(
+                    'value' => "活动奖品：{$info['prize_title']}",
+                ),
+                'keyword2' => array(
+                    'value' => '无',
+                ),
+                'keyword3' => array(
+                    'value' => "您参与的抽奖活动已经开奖，点击查看" ,
+                ),
+            );
+            $content['page'] = '';
+
+            $json = json_encode($content);
+            $service->sendMessage($json);
+            if ($service->hasError()) {
+                echo "send_message_fail: {$open_id} {$json} \r\n" .  json_encode($service->getError());
+                log::w("send_message_fail:" . json_encode($service->getError()) . $json);
+                $service->flushError();
+                continue;
+            }
+            log::i("send_message_success: {$open_id} {$json}");
+            echo "send_message_success: {$open_id} {$json} \r\n";
+        }
+    }
 }

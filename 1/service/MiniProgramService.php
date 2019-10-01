@@ -4,19 +4,20 @@ class MiniProgramService extends BaseService
 {
     private $app_id;
     private $app_secret;
-    private $sesison_key;
+    private $session_key;
     private $type;
 
     public function __construct($type = null)
     {
         parent::__construct();
         $appcode = b('appcode');
+        $type && $appcode = $type;
+
         switch ((int)$appcode) {
             case 1 : $this->type = 'trophy'; break;
             case 2 : $this->type = 'price'; break;
         }
 
-        $type && $this->type = $type;
         $this->app_id = c("mini_program.{$this->type}.app_id");
         $this->app_secret = c("mini_program.{$this->type}.app_secret");
     }
@@ -53,8 +54,8 @@ class MiniProgramService extends BaseService
         $data = array();
         switch ($type) {
             case 'info' :
-                $this->sesison_key = $response['session_key'];
-//                $this->sesison_key = 'tiihtNczf5v6AKRyjwEUhQ==';
+                $this->session_key = $response['session_key'];
+//                $this->session_key = 'tiihtNczf5v6AKRyjwEUhQ==';
                 $data = $this->handleDecrypt($encrypt_data, $iv);
 
                 if ($this->hasError()) {
@@ -85,7 +86,7 @@ class MiniProgramService extends BaseService
 
                 break;
             case 'share':
-                $this->sesison_key = $response['session_key'];
+                $this->session_key = $response['session_key'];
                 $data = $this->handleDecrypt($encrypt_data, $iv);
                 break;
             default:
@@ -104,10 +105,10 @@ class MiniProgramService extends BaseService
      */
     public function handleDecrypt($encrypt_data, $iv)
     {
-        if (strlen($this->sesison_key) != 24) {
+        if (strlen($this->session_key) != 24) {
             return $this->setError('illegal_session_key', '非法的session_key');
         }
-        $aes_key = base64_decode($this->sesison_key);
+        $aes_key = base64_decode($this->session_key);
 
         if (strlen($iv) != 24) {
             return $this->setError('illegal_iv', '非法的iv');

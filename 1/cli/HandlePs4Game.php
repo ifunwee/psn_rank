@@ -693,7 +693,7 @@ class HandlePs4Game extends BaseService
             echo date('Y-m-d H:i:s') . " 暂无发现降价商品 \r\n";
             return false;
         }
-        $service = s('MiniProgram', 'price');
+        $service = s('MiniProgram', 2);
         $goods_service = s('Goods');
         $goods_id_arr = array_column($list, 'goods_id');
         $goods_id_str = implode("','", $goods_id_arr);
