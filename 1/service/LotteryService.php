@@ -302,7 +302,7 @@ class LotteryService extends BaseService
 
         $num = $this->getLotteryTicketNumFromCache($lottery_id, $user_id);
         if (empty($num)) {
-            $num = $this->getUserLotteryTicketListFromDb($lottery_id, $user_id);
+            $num = $this->getLotteryTicketNumFromDb($lottery_id, $user_id);
             if (!empty($num)) {
                 $redis = r('psn_redis');
                 $lottery_ticket_rank_key = redis_key('lottery_ticket_rank', $lottery_id);

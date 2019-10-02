@@ -196,7 +196,7 @@ class HandleLottery
         $db = pdo();
         $db->tableName = 'lottery';
         $where['is_notice'] = 0;
-        $where['status'] = 2;
+        $where['status'] = 3;
         $info = $db->find($where);
 
         if (empty($info)) {
@@ -252,7 +252,7 @@ class HandleLottery
                     'value' => '您参与的抽奖活动已经开奖，点击查看',
                 ),
             );
-//            $content['page'] = "pages/lotteryDetail/lotteryDetail?id={$info['id']}";
+            $content['page'] = "pages/lotteryDetail/lotteryDetail?id={$info['id']}";
 
             $json = json_encode($content);
             $service->sendMessage($json);
