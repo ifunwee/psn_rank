@@ -281,4 +281,23 @@ class CommonService extends BaseService
         return $payload;
     }
 
+    public function handleAppImage($image, $width = '', $height = '')
+    {
+        if (empty($image)) {
+            return '';
+        }
+
+        $domain = c('app_image_domain');
+        if (!empty($image) && strpos($image, 'http') === false) {
+            $handle_image = $domain . $image;
+            if ($width && $height) {
+                $handle_image .= "?imageView2/0/w/{$width}/h/{$height}";
+            }
+        } else {
+            $handle_image = $image;
+        }
+
+        return $handle_image;
+    }
+
 }

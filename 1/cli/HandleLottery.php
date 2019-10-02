@@ -154,7 +154,8 @@ class HandleLottery
                 $sql = "update lottery_ticket set is_win = 1 where lottery_id = {$info['id']} and lottery_ticket in ({$lottery_result})";
                 $db->exec($sql);
 
-                echo "活动id:{$info['id']} 开奖成功 开奖结果：{$lottery_result} 中奖名单：{$prize_winner} \r\n";
+                $datetime = date('Y-m-d H:i:s');
+                echo "{$datetime} 活动id:{$info['id']} 开奖成功 开奖结果：{$lottery_result} 中奖名单：{$prize_winner} \r\n";
             } catch (Exception $e) {
                 echo "操作数据库出现异常：" . $e->getMessage() . "\r\n";
                 log::e("db_error:" . $e->getMessage());

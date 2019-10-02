@@ -20,7 +20,7 @@ class LotteryService extends BaseService
             $value['lottery_join_num'] = $this->getLotteryJoinNum($value['id']);
 
             if (!empty($user_id)) {
-                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNum($value['id'], $user_id);
+                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNumFromCache($value['id'], $user_id);
             } else {
                 $value['my_lottery_ticket_num'] = 0;
             }
@@ -28,6 +28,7 @@ class LotteryService extends BaseService
             $day_join_key = redis_key('lottery_day_join', date('Ymd'), $user_id, $value['id']);
             $join_num = $redis->get($day_join_key) ? : 0;
             $value['left_chance'] = $day_limit - $join_num >= 0 ? $day_limit - $join_num : 0;
+            $value['prize_image'] = s('Common')->handleAppImage($value['prize_image']);
         }
 
         unset($value);
@@ -41,6 +42,11 @@ class LotteryService extends BaseService
         $where = "status >= 2";
         $field = array('id', 'prize_title', 'prize_image', 'lottery_join_num', 'lottery_num', 'end_time');
         $list = $this->getLotteryListFromDb($where, $field, 'lottery_time desc', $page);
+
+        foreach ($list as &$value) {
+            $value['prize_image'] = s('Common')->handleAppImage($value['prize_image']);
+        }
+        unset($value);
 
         $data['list'] = $list;
         return $data;
@@ -81,7 +87,7 @@ class LotteryService extends BaseService
         $data = array(
             'info' => array(
                 "prize_title" => $lottery_info['prize_title'] ? : '',
-                "prize_image" => $lottery_info['prize_image'] ? : '',
+                "prize_image" => $lottery_info['prize_image'] ? s('Common')->handleAppImage($lottery_info['prize_image']) : '',
                 "prize_description" => $lottery_info['prize_description'] ? : '',
                 "start_time" => $lottery_info['start_time'] ? : 0,
                 "end_time" => $lottery_info['end_time'] ? : 0,
@@ -286,6 +292,29 @@ class LotteryService extends BaseService
 
     public function getLotteryTicketNum($lottery_id, $user_id)
     {
+        if (empty($lottery_id)) {
+            return $this->setError('param_lottery_id_empty');
+        }
+
+        if (empty($user_id)) {
+            return $this->setError('param_user_id_empty');
+        }
+
+        $num = $this->getLotteryTicketNumFromCache($lottery_id, $user_id);
+        if (empty($num)) {
+            $num = $this->getUserLotteryTicketListFromDb($lottery_id, $user_id);
+            if (!empty($num)) {
+                $redis = r('psn_redis');
+                $lottery_ticket_rank_key = redis_key('lottery_ticket_rank', $lottery_id);
+                $redis->zAdd($lottery_ticket_rank_key, $num, $user_id);
+            }
+        }
+
+        return $num;
+    }
+
+    public function getLotteryTicketNumFromCache($lottery_id, $user_id)
+    {
         $redis = r('psn_redis');
         $lottery_ticket_rank_key = redis_key('lottery_ticket_rank', $lottery_id);
         $score = $redis->zScore($lottery_ticket_rank_key, $user_id);
@@ -326,6 +355,7 @@ class LotteryService extends BaseService
         foreach ($rank_list as $user_id => $num) {
             $list[] = array(
                 'rank' => $rank,
+                'user_id' => $user_id,
                 'nick_name' => $user_info[$user_id]['nick_name'],
                 'avatar_url' => $user_info[$user_id]['avatar_url'],
                 'num' => floor($num) ? : 0,
