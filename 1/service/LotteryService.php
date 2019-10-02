@@ -4,8 +4,9 @@ class LotteryService extends BaseService
 {
     public function getLotteryListByCurrent($user_id = '')
     {
-        $where['status'] = 1;
-        $field = array('id', 'prize_title', 'prize_image', 'lottery_time');
+        $now = time();
+        $where = "status = 1 and $now >= start_time";
+        $field = array('id', 'prize_title', 'prize_image', 'end_time', 'lottery_num');
         $list = $this->getLotteryListFromDb($where, $field, 'lottery_time asc', 1);
 
         if (empty($list)) {
@@ -37,8 +38,8 @@ class LotteryService extends BaseService
 
     public function getLotteryListByHistory($page)
     {
-        $where['status'] = 2;
-        $field = array('id', 'prize_title', 'prize_image', 'lottery_time', 'lottery_join_num');
+        $where = "status >= 2";
+        $field = array('id', 'prize_title', 'prize_image', 'lottery_join_num', 'lottery_num', 'end_time');
         $list = $this->getLotteryListFromDb($where, $field, 'lottery_time desc', $page);
 
         $data['list'] = $list;
