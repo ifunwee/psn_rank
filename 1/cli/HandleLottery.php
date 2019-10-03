@@ -27,6 +27,12 @@ class HandleLottery
             $limit = 1000;
 
             if (empty($info['lottery_num'])) {
+                echo "抽奖配置的奖品数量为空\r\n";
+                return false;
+            }
+
+            if (!empty($info['prize_winner'])) {
+                echo "状态为待开奖，但中奖名单却有数据，无法重复开奖，请排查异常\r\n";
                 return false;
             }
             $lottery_ticket_pool_key = redis_key('lottery_ticket_pool', $info['id']);
@@ -217,7 +223,12 @@ class HandleLottery
         $data['is_notice'] = 1;
         $db->update($data, array('id' => $info['id']));
 
-        $sql = "select a.user_id,a.open_id,a.appcode from user a RIGHT JOIN (select user_id from lottery_ticket where lottery_id = {$info['id']} GROUP BY user_id) b ON a.user_id = b.user_id";
+        $sql = "select * from 
+                (select user_id,open_id,appcode from open_id where appcode = 2) a 
+                RIGHT JOIN 
+                (select user_id from lottery_ticket where lottery_id = 5 GROUP BY user_id) b 
+                ON a.user_id = b.user_id;";
+
         $list = $db->query($sql);
 
         if (empty($list)) {
@@ -246,7 +257,7 @@ class HandleLottery
             $content['form_id'] = $form_id['form_id'];
             $content['data'] = array(
                 'keyword1' => array(
-                    'value' => "活动奖品：{$info['prize_title']}",
+                    'value' => "{$info['prize_title']}",
                 ),
                 'keyword2' => array(
                     'value' => '您参与的抽奖活动已经开奖，点击查看',
