@@ -129,10 +129,20 @@ class HandleLottery
                     continue;
                 }
 
+                $winner_str = implode("','", $winner);
+                $sql = "select user_id,count(*) as lottery_ticket_num from lottery_ticket where lottery_id = {$info['id']} and user_id in ('{$winner_str}') group by user_id";
+                $result = $db->query($sql);
+
+                $lottery_ticket_num_arr = array();
+                foreach ($result as $value) {
+                    $lottery_ticket_num_arr[$value['user_id']] = $value['lottery_ticket_num'];
+                }
+
                 $user_info = $user_service->getUserInfoByUserId($winner, array('nick_name', 'avatar_url'));
                 foreach ($winner_by_ticket as &$value) {
                     $value['nickname'] = $user_info[$value['user_id']]['nick_name'];
                     $value['avatar_url'] = $user_info[$value['user_id']]['avatar_url'];
+                    $value['lottery_ticket_num'] = $lottery_ticket_num_arr[$value['user_id']];
                 }
                 unset($value);
 
