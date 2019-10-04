@@ -54,4 +54,18 @@ class MiniProgramInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    public function msgSecCheck()
+    {
+        $content = getParam('content');
+
+        $service      = s('MiniProgram');
+        $service->msgSecCheck($content);
+
+        if ($service->hasError()) {
+            $this->respondFailure($service->getError());
+        }
+
+        $this->respondSuccess(null);
+    }
+
 }

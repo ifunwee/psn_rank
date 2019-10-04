@@ -10,7 +10,7 @@ class MiniProgramService extends BaseService
     public function __construct($type = null)
     {
         parent::__construct();
-        $appcode = b('appcode');
+        $appcode = b('appcode') ? : 2;
         $type && $appcode = $type;
 
         switch ((int)$appcode) {
@@ -249,5 +249,51 @@ class MiniProgramService extends BaseService
         }
 
         return $response;
+    }
+
+    public function imgSecCheck($media)
+    {
+        $access_token = $this->getAccessToken();
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+        $url = "https://api.weixin.qq.com/wxa/img_sec_check?access_token={$access_token}";
+        $service = s('Common');
+        $data = array('media' => new CURLFile($media));
+
+        $response = $service->curl($url, array(), $data, 'post');
+
+        $response = json_decode($response, true);
+        if ((int)$response['errcode'] !== 0) {
+            return $this->setError($response['errcode'], $response['errmsg']);
+        }
+
+        return true;
+    }
+
+    public function msgSecCheck($content)
+    {
+        $access_token = $this->getAccessToken();
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+        $url = "https://api.weixin.qq.com/wxa/msg_sec_check?access_token={$access_token}";
+        $service = s('Common');
+
+        $data['content'] = $content;
+        $json = json_encode($data, 256);
+
+        $header = array(
+            "Content-Type: application/json; charset=UTF-8",
+            "Content-Length: " . strlen($json),
+        );
+
+        $response = $service->curl($url, $header, $json, 'post');
+        $response = json_decode($response, true);
+        if ((int)$response['errcode'] !== 0) {
+            return $this->setError($response['errcode'], $response['errmsg']);
+        }
+
+        return true;
     }
 }

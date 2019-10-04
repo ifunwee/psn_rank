@@ -19,6 +19,7 @@ class CommonService extends BaseService
     {
         $start = microtime(true);
         $ch = curl_init();
+//        $post_data = array("media"  => new CURLFile($post_data));
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

@@ -21,11 +21,19 @@ class ToolsService extends BaseService
         }
 
         $service = s('Qiniu');
+        $mini_service = s('MiniProgram');
+
         $upload = $fail = array();
         foreach ($files as $key => $file) {
             $file['ext'] = pathinfo($file['name'], 4);
             if (!$this->check($file)) {
                 $fail[] = "{$file['name']} 上传失败：{$this->getErrorMsg()}";
+                $this->flushError();
+                continue;
+            }
+
+            if ($mini_service->imgSecCheck($file['tmp_name']) !== true) {
+                $fail[] = "{$file['name']} 上传失败：{$mini_service->getErrorMsg()}";
                 $this->flushError();
                 continue;
             }
