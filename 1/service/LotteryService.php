@@ -10,7 +10,8 @@ class LotteryService extends BaseService
         $list = $this->getLotteryListFromDb($where, $field, 'lottery_time asc', 1);
 
         if (empty($list)) {
-            return $data['list'] = null;
+            $data['list'] = null;
+            return $data;
         }
 
         $redis = r('psn_redis');
@@ -42,6 +43,11 @@ class LotteryService extends BaseService
         $where = "status >= 2";
         $field = array('id', 'prize_title', 'prize_image', 'lottery_join_num', 'lottery_num', 'end_time');
         $list = $this->getLotteryListFromDb($where, $field, 'lottery_time desc', $page);
+
+        if (empty($list)) {
+            $data['list'] = null;
+            return $data;
+        }
 
         foreach ($list as &$value) {
             $value['prize_image'] = s('Common')->handleAppImage($value['prize_image']);

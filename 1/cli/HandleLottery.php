@@ -9,6 +9,8 @@ class HandleLottery
 {
     public function run()
     {
+        $datetime = date('Y-m-d H:i:s');
+        echo "{$datetime} ";
         $redis = r('psn_redis');
         $db = pdo();
         $now = time();
@@ -160,8 +162,7 @@ class HandleLottery
                 $sql = "update lottery_ticket set is_win = 1 where lottery_id = {$info['id']} and lottery_ticket in ({$lottery_result})";
                 $db->exec($sql);
 
-                $datetime = date('Y-m-d H:i:s');
-                echo "{$datetime} 活动id:{$info['id']} 开奖成功 开奖结果：{$lottery_result} 中奖名单：{$prize_winner} \r\n";
+                echo "活动id:{$info['id']} 开奖成功 开奖结果：{$lottery_result} 中奖名单：{$prize_winner} \r\n";
             } catch (Exception $e) {
                 echo "操作数据库出现异常：" . $e->getMessage() . "\r\n";
                 log::e("db_error:" . $e->getMessage());
@@ -174,6 +175,9 @@ class HandleLottery
 
     public function end()
     {
+        $datetime = date('Y-m-d H:i:s');
+        echo "{$datetime} ";
+
         $now = time();
         $db = pdo();
         $db->tableName = 'lottery';
@@ -181,7 +185,7 @@ class HandleLottery
         $list = $db->query($sql);
 
         if (empty($list)) {
-            echo "没有结束抽奖的活动 \r\n";
+            echo "没有需要结束抽奖的活动 \r\n";
             return false;
         }
 
@@ -199,6 +203,9 @@ class HandleLottery
 
     public function notice()
     {
+        $datetime = date('Y-m-d H:i:s');
+        echo "{$datetime} ";
+
         $db = pdo();
         $db->tableName = 'lottery';
         $where['is_notice'] = 0;
@@ -206,7 +213,7 @@ class HandleLottery
         $info = $db->find($where);
 
         if (empty($info)) {
-            echo "没有需要开奖通知的抽奖活动";
+            echo "没有需要开奖通知的抽奖活动 \r\n";
             return false;
         }
 
@@ -226,13 +233,13 @@ class HandleLottery
         $sql = "select * from 
                 (select user_id,open_id,appcode from open_id where appcode = 2) a 
                 RIGHT JOIN 
-                (select user_id from lottery_ticket where lottery_id = 5 GROUP BY user_id) b 
+                (select user_id from lottery_ticket where lottery_id = {$info['id']} GROUP BY user_id) b 
                 ON a.user_id = b.user_id;";
 
         $list = $db->query($sql);
 
         if (empty($list)) {
-            echo "没有要推送的参与用户";
+            echo "没有要推送的参与用户\r\n";
             return false;
         }
 
