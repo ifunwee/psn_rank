@@ -130,7 +130,7 @@ class HandleLottery
                 }
 
                 $winner_str = implode("','", $winner);
-                $sql = "select user_id,count(*) as lottery_ticket_num from lottery_ticket where lottery_id = {$info['id']} and user_id in ('{$winner_str}') group by user_id";
+                $sql = "select user_id,count(*) as lottery_ticket_num from lottery_ticket where lottery_id = {$info['id']} and user_id in ('{$winner_str}') and status = 1 group by user_id";
                 $result = $db->query($sql);
 
                 $lottery_ticket_num_arr = array();
@@ -146,11 +146,11 @@ class HandleLottery
                 }
                 unset($value);
 
-                $sql = "select count(*) as publish_num from lottery_ticket where lottery_id = {$info['id']}";
+                $sql = "select count(*) as publish_num from lottery_ticket where lottery_id = {$info['id']} and status = 1";
                 $result = $db->query($sql);
                 $publish_num = $result[0]['publish_num'] ? : 0;
 
-                $sql = "select count(DISTINCT user_id) as join_num from lottery_ticket where lottery_id = {$info['id']}";
+                $sql = "select count(DISTINCT user_id) as join_num from lottery_ticket where lottery_id = {$info['id']} and status = 1";
                 $result = $db->query($sql);
                 $join_num = $result[0]['join_num'] ? : 0;
 
@@ -285,7 +285,7 @@ class HandleLottery
             $json = json_encode($content);
             $service->sendMessage($json);
             if ($service->hasError()) {
-                echo "send_message_fail: {$open_id} {$json} \r\n" .  json_encode($service->getError());
+                echo "send_message_fail: {$open_id} {$json} \r\n" .  json_encode($service->getError() . "\r\n");
                 log::w("send_message_fail:" . json_encode($service->getError()) . $json);
                 $service->flushError();
                 continue;

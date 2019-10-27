@@ -7,7 +7,7 @@ class LotteryService extends BaseService
         $now = time();
         $where = "status = 1 and $now >= start_time";
         $field = array('id', 'prize_title', 'prize_image', 'end_time', 'lottery_num');
-        $list = $this->getLotteryListFromDb($where, $field, 'lottery_time asc', 1);
+        $list = $this->getLotteryListFromDb($where, $field, 'id desc', 1);
 
         if (empty($list)) {
             $data['list'] = null;
@@ -21,7 +21,7 @@ class LotteryService extends BaseService
             $value['lottery_join_num'] = $this->getLotteryJoinNum($value['id']);
 
             if (!empty($user_id)) {
-                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNumFromCache($value['id'], $user_id);
+                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNumFromDb($value['id'], $user_id);
             } else {
                 $value['my_lottery_ticket_num'] = 0;
             }
@@ -100,7 +100,7 @@ class LotteryService extends BaseService
                 "status" => $lottery_info['status'] ? : 0,
                 "lottery_time" => $lottery_info['lottery_time'] ? : 0,
                 "lottery_num" => $lottery_info['lottery_num'] ? : 0,
-                "lottery_ticket_publish" => $redis->scard($lottery_ticket_publish_key) ? : 0,
+//                "lottery_ticket_publish" => $redis->scard($lottery_ticket_publish_key) ? : 0,
                 "lottery_join_num" => $this->getLotteryJoinNum($lottery_id) ? : 0,
                 "prize_winner" => $lottery_info['prize_winner'] ? array_values(json_decode($lottery_info['prize_winner'], true)) : array(),
             ),
@@ -375,7 +375,7 @@ class LotteryService extends BaseService
 
     }
 
-    public function getUserLotteryTicketList($lottery_id, $user_id, $page = 1)
+    public function getUserLotteryTicketList($lottery_id, $user_id, $page = '')
     {
         if (empty($lottery_id)) {
             return $this->setError('param_lottery_id_empty');
@@ -387,6 +387,7 @@ class LotteryService extends BaseService
 
         $where['lottery_id'] = $lottery_id;
         $where['user_id'] = $user_id;
+        $where['status'] = 1;
         $field = array('lottery_ticket', 'is_win', 'create_time');
 
         $list = $this->getUserLotteryTicketListFromDb($where, $field, 'is_win desc, id desc', $page);
@@ -398,13 +399,17 @@ class LotteryService extends BaseService
         return $data;
     }
 
-    protected function getUserLotteryTicketListFromDb($where = '', $field = array(), $sort = '', $page = 1, $limit = 20)
+    protected function getUserLotteryTicketListFromDb($where = '', $field = array(), $sort = '', $page = '', $limit = '')
     {
         $where = $where ? $where : '1=1';
         $field = $field ? implode(',', $field) : '*';
         $sort = $sort ? $sort : 'id desc';
-        $start = ($page - 1) * $limit;
-        $limit_str = "{$start}, {$limit}";
+        if ($page && $limit) {
+            $start = ($page - 1) * $limit;
+            $limit_str = "{$start}, {$limit}";
+        } else {
+            $limit_str = "";
+        }
 
         $db = pdo();
         $db->tableName = 'lottery_ticket';

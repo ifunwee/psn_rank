@@ -117,4 +117,83 @@ class HandleOnce
         echo '脚本处理完成';
     }
 
+    public function getJumpTicket()
+    {
+        $o = 30;
+        $l = 5;
+        while (true) {
+            $service = s('Common');
+            $url = "https://switch.vgjump.com/switch/lottery/getAllLotteryConfigListNewByPage?offset={$o}&limit={$l}";
+            $response = $service->curl($url);
+
+            if (empty($response)) {
+                return false;
+            }
+
+            $result = json_decode($response, true);
+            if (empty($result['data']['offLotteryConfigBeanList'])) {
+                return false;
+            }
+            $lottery_arr = array();
+            foreach ($result['data']['offLotteryConfigBeanList'] as $info) {
+                $lottery_arr[$info['lotteryId']] = array(
+                    'lotteryId' => $info['lotteryId'],
+                    'rewardName' => $info['rewardName'],
+                    'rewardNum' => $info['rewardNum'],
+                    'duration' => floor((strtotime($info['drawingTime']) - strtotime($info['createTime']))/86400),
+                );
+            }
+            $lottery_id_arr = array_keys($lottery_arr);
+            foreach ($lottery_id_arr as $lottery_id) {
+                $lottery_id = 201910092200;
+                $offset = 0;
+                $limit = 100;
+                $total = 0;
+                $join = 0;
+                $service = s('Common');
+                while (true) {
+                    $url = "https://switch.vgjump.com/switch/lottery/getLotteryTotalNumber?lotteryId={$lottery_id}&offset={$offset}&limit={$limit}";
+                    $cookie = 'qiyeToken=eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJqdW1wIiwidXNlciI6IkREZUNTUmVmQmdIMVV6QTgifQ.UIs94dUQN0AeC_o_iDis9u6MHul2Qe7VFssI4u-TySHTgtdODr57XJZsYaw0SLPX-2YbO4uCJ_glFpGQH1qz_Q;uid=228053;version=2;';
+                    $response = $service->curl($url, array(), '', '', $cookie);
+//                                var_dump($url,$response);exit;
+                    if (empty($response)) {
+                        break;
+                    }
+
+                    $result = json_decode($response, true);
+                    if (empty($result['data']['lotteryBillboardBeanList'])) {
+                        break;
+                    }
+
+                    $num_arr = array_column($result['data']['lotteryBillboardBeanList'], 'countNum');
+                    $sum = array_sum($num_arr);
+                    $join = $result['data']['totalUserNum'];
+
+                    $total += $sum;
+                    $offset += $limit;
+                }
+
+                $cpa = round($total/$join, 2);
+                echo "jump抽奖：{$lottery_id} {$lottery_arr[$lottery_id]['rewardName']}x{$lottery_arr[$lottery_id]['rewardNum']} 耗时：{$lottery_arr[$lottery_id]['duration']}天 参与人数：$join 总票数：$total 人均广告：$cpa \r\n";
+            }
+
+            $o += $l;
+        }
+    }
+
+    public function handleLotteryRank()
+    {
+        $db = pdo();
+        $sql = "select lottery_id,user_id, count(lottery_ticket) as num from lottery_ticket where status = 1 and lottery_id = 13 group by lottery_id,user_id order by lottery_id desc, num desc";
+        $list = $db->query($sql);
+        $redis = r('psn_redis');
+
+        foreach ($list as $info) {
+            $lottery_ticket_rank_key = redis_key('lottery_ticket_rank', $info['lottery_id']);
+            $redis->zAdd($lottery_ticket_rank_key, $info['num'], $info['user_id']);
+            echo "user_id:{$info['user_id']} lottery_id:{$info['lottery_id']} num:{$info['num']} \r\n";
+        }
+
+    }
+
 }

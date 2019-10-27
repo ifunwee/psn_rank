@@ -84,7 +84,7 @@ class LotteryInterface extends BaseInterface
         }
 
         $service      = s('Lottery');
-        $result = $service->getUserLotteryTicketList($lottery_id, $user_id, $page);
+        $result = $service->getUserLotteryTicketList($lottery_id, $user_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
@@ -100,7 +100,7 @@ class LotteryInterface extends BaseInterface
         $page = getParam('page', 1);
 
         $service      = s('Lottery');
-        $result = $service->getUserLotteryTicketList($lottery_id, $user_id, $page);
+        $result = $service->getUserLotteryTicketList($lottery_id, $user_id);
 
         if ($service->hasError()) {
             $this->respondFailure($service->getError());
