@@ -83,7 +83,6 @@ class HandleOnce
     {
         $db = pdo();
         $db->tableName = 'follow';
-        $where['status'] = 1;
         $page = 1;
         $limit = 1000;
         $redis = r('psn_redis');
@@ -92,7 +91,7 @@ class HandleOnce
         while ($is_loop) {
             $start = ($page - 1) * $limit;
             $limit_str = "{$start}, {$limit}";
-            $list = $db->findAll($where, '*', 'id desc', $limit_str);
+            $list = $db->findAll('1=1', '*', 'id desc', $limit_str);
 
             if (empty($list)) {
                 $is_loop = false;
@@ -100,7 +99,7 @@ class HandleOnce
                 foreach ($list as $info) {
                     $account_follow_key = redis_key('account_follow', $info['open_id']);
                     $goods_follow_key = redis_key('goods_follow', $info['goods_id']);
-                    if ($info['goods_id'] == 'undefined') {
+                    if ($info['goods_id'] == 'undefined' || $info['status'] == 0) {
                         $redis->zRem($account_follow_key, $info['goods_id']);
                         $redis->sRem($goods_follow_key, $info['open_id']);
                     } else {

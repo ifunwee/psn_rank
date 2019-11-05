@@ -21,7 +21,7 @@ class LotteryService extends BaseService
             $value['lottery_join_num'] = $this->getLotteryJoinNum($value['id']);
 
             if (!empty($user_id)) {
-                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNumFromDb($value['id'], $user_id);
+                $value['my_lottery_ticket_num'] = $this->getLotteryTicketNumFromCache($value['id'], $user_id);
             } else {
                 $value['my_lottery_ticket_num'] = 0;
             }
