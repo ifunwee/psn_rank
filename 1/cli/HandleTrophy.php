@@ -293,6 +293,7 @@ class HandleTrophy extends BaseService
             $data['np_communication_id'] = $trophy_info['np_communication_id'];
             $where['goods_id'] = $goods['goods_id'];
             $db->update($data, $where);
+            log::i("id: {$goods['id']} goods_id: {$goods['goods_id']} np_communication_id: {$trophy_info['np_communication_id']} game_name: {$goods['name_cn']} trophy_name: {$trophy_info['trophy_title_name']} 游戏奖杯关联成功");
             echo "id: {$goods['id']} goods_id: {$goods['goods_id']} np_communication_id: {$trophy_info['np_communication_id']} game_name: {$goods['name_cn']} trophy_name: {$trophy_info['trophy_title_name']} 游戏奖杯关联成功\r\n";
             sleep(3);
         }

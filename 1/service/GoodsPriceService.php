@@ -76,7 +76,7 @@ class GoodsPriceService extends BaseService
                 $list = $this->completeGoodsInfo($price_list);
                 break;
             case 'plus':
-                $where = "discount = 0 and plus_discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1) and status > 0";
+                $where = "(discount = 0 and plus_discount > 0 and IF(end_date > 0,UNIX_TIMESTAMP() < end_date, 1=1)  || (plus_sale_price = 0 and end_date > 0)) and status > 0";
                 $sort = 'plus_discount desc, id desc';
                 $price_list = $this->getGoodsPriceListFromDb($where, '', $sort, $page, $limit);
                 $list = $this->completeGoodsInfo($price_list);
@@ -291,7 +291,7 @@ class GoodsPriceService extends BaseService
                         'origin_price' => number_format($price['plus_origin_price'] / 100, 2),
                         'sale_price' => number_format($price['plus_sale_price'] / 100, 2),
                         'lowest_price' => number_format($price['plus_lowest_price'] / 100, 2),
-                        'discount' => $price['plus_discount'],
+                        'discount' => $price['plus_sale_price'] == 0 ? 100 : $price['plus_discount'],
                         'price_unit' => c('price_unit'),
                         'tag' => $price['plus_tag'],
                     ),
