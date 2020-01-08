@@ -39,8 +39,8 @@ class ToolsService extends BaseService
             }
 
             $file_data = base64_encode(file_get_contents($file['tmp_name']));
-            $sava_name = $business_type . '_' .time() . rand(1000, 9999) . '.' . $file['ext'];
-            $response = $service->uploadFile($file_data, $sava_name, $bucket);
+            $save_name = $business_type . '_' .time() . rand(1000, 9999) . '.' . $file['ext'];
+            $response = $service->uploadFile($file_data, $save_name, $bucket);
             if ($service->hasError()) {
                 $fail[] = "{$file['name']} 上传失败：{$this->getErrorMsg()}";
                 $this->flushError();
