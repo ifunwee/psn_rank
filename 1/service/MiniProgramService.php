@@ -177,6 +177,8 @@ class MiniProgramService extends BaseService
             $response = $service->curl($url);
             $response = json_decode($response, true);
             if (!empty($response['errcode'])) {
+                //出错清空缓存
+                $redis->expire($access_token_key, 0);
                 return $this->setError($response['errcode'], $response['errmsg']);
             }
             $redis->set($access_token_key, $response['access_token'], $response['expires_in']);
@@ -228,6 +230,12 @@ class MiniProgramService extends BaseService
         }
     }
 
+    /**
+     * 发送模板消息【弃用】请移至订阅消息
+     * @param $data
+     *
+     * @return array|mixed
+     */
     public function sendMessage($data)
     {
         $access_token = $this->getAccessToken();
@@ -235,6 +243,35 @@ class MiniProgramService extends BaseService
             return $this->setError($this->getError());
         }
         $url = "https://api.weixin.qq.com/cgi-bin/message/wxopen/template/send?access_token={$access_token}";
+        $service = s('Common');
+
+        $header = array(
+            "Content-Type: application/json; charset=UTF-8",
+            "Content-Length: " . strlen($data),
+        );
+
+        $response = $service->curl($url, $header, $data, 'post');
+        $response = json_decode($response, true);
+        if (!empty($response['errcode'])) {
+            return $this->setError($response['errcode'], $response['errmsg']);
+        }
+
+        return $response;
+    }
+
+    /**
+     * 发送订阅消息
+     * @param $data
+     *
+     * @return array|mixed
+     */
+    public function sendSubscribeMessage($data)
+    {
+        $access_token = $this->getAccessToken();
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+        $url = "https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token={$access_token}";
         $service = s('Common');
 
         $header = array(

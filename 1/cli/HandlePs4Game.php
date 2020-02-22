@@ -679,8 +679,9 @@ class HandlePs4Game extends BaseService
     }
 
     /**
-     * 降价通知
+     * 降价通知 模板消息 【弃用】
      */
+    /**
     public function reducePriceNotice()
     {
         $date = strtotime(date('Y-m-d', time()));
@@ -781,6 +782,97 @@ class HandlePs4Game extends BaseService
             $redis->expireAt($redis_key, $expire_time);
         }
 
+    }
+    **/
+
+    public function reducePriceNotice()
+    {
+        $date = strtotime(date('Y-m-d', time()));
+        $redis = r('psn_redis');
+        $db    = pdo();
+        $sql   = "select * from goods_price_history where date = {$date} and start_date > 0 and (discount > 0 or plus_discount > 0)";
+        $list  = $db->query($sql);
+        if (empty($list)) {
+            log::n('discount_goods_is_empty');
+            echo date('Y-m-d H:i:s') . " 暂无发现降价商品 \r\n";
+            return false;
+        }
+
+        $service       = s('MiniProgram', 2);
+        $goods_service = s('Goods');
+        $goods_id_arr  = array_column($list, 'goods_id');
+        $goods_id_str  = implode("','", $goods_id_arr);
+        $goods_list    = array();
+        foreach ($list as $info) {
+            $goods_list[$info['goods_id']] = $info;
+        }
+
+        $goods_info_arr = $goods_service->getGoodsInfo($goods_id_arr);
+        $sql            = "select a.user_id,a.goods_id,b.open_id from follow a left join open_id b on a.user_id = b.user_id where a.goods_id in ('{$goods_id_str}') and a.status = 1 and b.appcode = 2 order by user_id desc";
+        $follow_list    = $db->query($sql);
+        $push_list      = array();
+        foreach ($follow_list as $follow_info) {
+            $push_list[$follow_info['open_id']][] = $follow_info['goods_id'];
+        }
+        foreach ($push_list as $open_id => $info) {
+            $redis_key = redis_key('reduce_price_notice_lock', $open_id);
+            $lock      = $redis->get($redis_key);
+            if ($lock) {
+                echo "reduce_price_notice_lock:{$open_id} \r\n";
+                continue;
+            }
+            $content['touser']            = $open_id;
+            $content['template_id']       = 'vL0jQU9I1k6QJwO0mY3Y3X5DNkj-3FAN2N3HFTucrIU';
+            $content['miniprogram_state'] = 'formal';
+
+            if (count($info) > 1) {
+                $goods_id        = $info[0];
+                $game_str        = "《{$goods_info_arr[$goods_id]['name_cn']}》";
+                $content['data'] = array(
+                    'thing1' => array(
+                        'value' => '您订阅的多个游戏发生变化',
+                    ),
+                    'time2' => array(
+                        'value' => date('Y-m-d'),
+                    ),
+                    'thing3' => array(
+                        'value' => mb_substr($game_str, 0, 16) . '...',
+                    ),
+                );
+                $content['page'] = 'pages/myfollow/myfollow?open_id=' . $open_id;
+            } else {
+                $goods_id        = $info[0];
+                $game_str        = "《{$goods_info_arr[$goods_id]['name_cn']}》";
+                $content['data'] = array(
+                    'thing1' => array(
+                        'value' => "您订阅的游戏发生变化",
+                    ),
+                    'time2' => array(
+                        'value' => date('Y-m-d'),
+                    ),
+                    'thing3' => array(
+                        'value' => mb_strlen($game_str) > 20 ? mb_substr($game_str, 0, 16) . '...' : $game_str,
+                    ),
+                );
+                $content['page'] = 'pages/detail/detail?goods_id=' . $goods_id;
+            }
+
+            $json = json_encode($content, 256);
+            $service->sendSubscribeMessage($json);
+            if ($service->hasError()) {
+                echo "send_message_fail: {$open_id} {$json} \r\n" . json_encode($service->getError());
+                log::w("send_message_fail:" . json_encode($service->getError()) . $json);
+                $service->flushError();
+                continue;
+            }
+            log::i("send_message_success: {$open_id} {$json}");
+            echo "send_message_success: {$open_id} {$json} \r\n";
+
+            $expire_time = strtotime(date('Y-m-d 12:00:00', time() + 86400));
+            $redis->set($redis_key, 1);
+            $redis->expireAt($redis_key, $expire_time);
+            exit;
+        }
     }
 
     public function handleDisplayName()
@@ -931,7 +1023,7 @@ class HandlePs4Game extends BaseService
         $i       = 1;
         foreach ($list as $info) {
             $goods_id = $info['goods_id'];
-            if (empty($goods_id)) {
+            if (empty($goods_id) || in_array($goods_id, c('exception_goods_id_for_media'))) {
                 continue;
             }
             $url      = 'https://store.playstation.com/valkyrie-api/en/us/19/resolve/' . $goods_id;
