@@ -823,7 +823,7 @@ class HandlePs4Game extends BaseService
             }
             $content['touser']            = $open_id;
             $content['template_id']       = 'vL0jQU9I1k6QJwO0mY3Y3X5DNkj-3FAN2N3HFTucrIU';
-            $content['miniprogram_state'] = 'formal';
+            $content['miniprogram_state'] = 'formal';       //developer为开发版；trial为体验版；formal为正式版；默认为正式版
 
             if (count($info) > 1) {
                 $goods_id        = $info[0];

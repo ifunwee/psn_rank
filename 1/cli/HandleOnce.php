@@ -97,17 +97,17 @@ class HandleOnce
                 $is_loop = false;
             } else {
                 foreach ($list as $info) {
-                    $account_follow_key = redis_key('account_follow', $info['open_id']);
-                    $goods_follow_key = redis_key('goods_follow', $info['goods_id']);
+                    $account_follow_key = redis_key('user_follow', $info['user_id']);
+                    $goods_follow_key = redis_key('goods_follow_user', $info['goods_id']);
                     if ($info['goods_id'] == 'undefined' || $info['status'] == 0) {
                         $redis->zRem($account_follow_key, $info['goods_id']);
-                        $redis->sRem($goods_follow_key, $info['open_id']);
+                        $redis->sRem($goods_follow_key, $info['user_id']);
                     } else {
                         $redis->zAdd($account_follow_key, $info['create_time'], $info['goods_id']);
-                        $redis->sAdd($goods_follow_key, $info['open_id']);
+                        $redis->sAdd($goods_follow_key, $info['user_id']);
                     }
 
-                    echo "同步 {$info['open_id']} 关注 {$info['goods_id']} 成功，关注时间:{$info['create_time']} \r\n";
+                    echo "同步 {$info['user_id']} 关注 {$info['goods_id']} 成功，关注时间:{$info['create_time']} \r\n";
                 }
                 $page++;
             }
