@@ -788,6 +788,7 @@ class HandlePs4Game extends BaseService
     public function reducePriceNotice()
     {
         $date = strtotime(date('Y-m-d', time()));
+//        $date = 1569945600;
         $redis = r('psn_redis');
         $db    = pdo();
         $sql   = "select * from goods_price_history where date = {$date} and start_date > 0 and (discount > 0 or plus_discount > 0)";
@@ -799,6 +800,7 @@ class HandlePs4Game extends BaseService
         }
 
         $service       = s('MiniProgram', 2);
+        $tools_service = s('Tools');
         $goods_service = s('Goods');
         $goods_id_arr  = array_column($list, 'goods_id');
         $goods_id_str  = implode("','", $goods_id_arr);
@@ -816,8 +818,11 @@ class HandlePs4Game extends BaseService
         }
         foreach ($push_list as $open_id => $info) {
             $redis_key = redis_key('reduce_price_notice_lock', $open_id);
-            $lock      = $redis->get($redis_key);
-            if ($lock) {
+            $allow = $redis->setnx($redis_key, 1);
+            $expire_time = strtotime(date('Y-m-d 12:00:00', time() + 86400));
+            $redis->expireAt($redis_key, $expire_time);
+
+            if ($allow === false) {
                 echo "reduce_price_notice_lock:{$open_id} \r\n";
                 continue;
             }
@@ -864,14 +869,51 @@ class HandlePs4Game extends BaseService
                 log::w("send_message_fail:" . json_encode($service->getError()) . $json);
                 $service->flushError();
                 continue;
+            } else {
+                log::i("send_message_success: {$open_id} {$json}");
+                echo "send_message_success: {$open_id} {$json} \r\n";
             }
-            log::i("send_message_success: {$open_id} {$json}");
-            echo "send_message_success: {$open_id} {$json} \r\n";
+        }
 
+        //推送至app
+        $app_push_list = array();
+        foreach ($follow_list as $follow_info) {
+            $app_push_list[$follow_info['user_id']][] = $follow_info['goods_id'];
+        }
+
+        foreach ($app_push_list as $user_id => $info) {
+            $redis_key = redis_key('reduce_price_notice_lock', $user_id);
+            $allow = $redis->setnx($redis_key, 1);
             $expire_time = strtotime(date('Y-m-d 12:00:00', time() + 86400));
-            $redis->set($redis_key, 1);
             $redis->expireAt($redis_key, $expire_time);
-            exit;
+
+            if ($allow === false) {
+                echo "reduce_price_notice_lock:{$user_id} \r\n";
+                continue;
+            }
+
+            $data = array(
+                array(
+                    'user_ids' => $user_id,
+                    'alert'    => '您好，您关注的商品已经降价',
+                    'content'  => array(
+                        'goods_id' => $info[0],
+                        'con_type' => 'goods',
+                    )
+                )
+            );
+
+            $json = json_encode($data, 256);
+            $tools_service->sendAppPushNotice($json);
+            if ($tools_service->hasError()) {
+                echo "send_app_push_fail: {$user_id} {$json} \r\n" . json_encode($tools_service->getError());
+                log::w("send_app_push_fail:" . json_encode($tools_service->getError()) . $json);
+                $service->flushError();
+                continue;
+            } else {
+                log::i("send_app_push_success: {$user_id} {$json}");
+                echo "send_app_push_success: {$user_id} {$json} \r\n";
+            }
         }
     }
 

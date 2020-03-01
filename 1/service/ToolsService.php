@@ -135,4 +135,26 @@ class ToolsService extends BaseService
             return in_array(strtolower($ext), $this->exts);
         }
     }
+
+    /**
+     * app推送
+     */
+    public function sendAppPushNotice($data)
+    {
+        $url = "http://47.106.244.212:9000/push/apns/notify";
+        $service = s('Common');
+
+        $header = array(
+            "Content-Type: application/json; charset=UTF-8",
+            "Content-Length: " . strlen($data),
+        );
+
+        $response = $service->curl($url, $header, $data, 'post');
+        $response = json_decode($response, true);
+        if ((int)$response['code'] !== 200) {
+            return $this->setError($response['code'], $response['msg']);
+        }
+
+        return $response;
+    }
 }
