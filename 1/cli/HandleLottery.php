@@ -296,32 +296,27 @@ class HandleLottery
     {
         $service = s('MiniProgram', 2);
         $open_id = '';
-        $content['touser'] = $open_id;
-        $content['template_id'] = 'SVLbOGNgPvtUPlTYN4fa_V__CouvNpIaVGDR1pxdnjc';
-        $form_id = $service->getFormId($open_id);
+        $content['touser']      = $open_id;
+        $content['template_id'] = 'q8LrbkjUGwMTuVArZGapBfSieuw51xRhP_nken2eaqQ';
+        $content['miniprogram_state'] = 'formal'; //developer为开发版；trial为体验版；formal为正式版；默认为正式版
+        $content['data']    = array(
+            'thing10' => array(
+                'value' => "神秘海域4",
+            ),
+            'thing8' => array(
+                'value' => '由于联系电话多次拨打无人接听，奖品无法正常发放。如您不方便接听电话，请联系我们工作人员特殊处理。',
+            ),
+        );
+
+        $json = json_encode($content, 256);
+        $service->sendSubscribeMessage($json);
 
         if ($service->hasError()) {
             echo ("get_form_id_fail: $open_id" . json_encode($service->getError()) . "\r\n");
             log::w("get_form_id_fail: $open_id " . json_encode($service->getError()));
             return false;
         }
-        $content['form_id'] = $form_id['form_id'];
-        $content['data'] = array(
-            'keyword1' => array(
-                'value' => "战神 ( God of War )",
-            ),
-            'keyword2' => array(
-                'value' => '由于联系电话多次拨打无人接听，奖品无法正常发放。如您不方便接听电话，请联系我们工作人员特殊处理，微信号：Luobrother',
-            ),
-        );
 
-        $json = json_encode($content);
-        $service->sendMessage($json);
-        if ($service->hasError()) {
-            echo "send_message_fail: {$open_id} {$json} \r\n" .  json_encode($service->getError() . "\r\n");
-            log::w("send_message_fail:" . json_encode($service->getError()) . $json);
-            return false;
-        }
         log::i("send_message_success: {$open_id} {$json}");
         echo "send_message_success: {$open_id} {$json} \r\n";
     }

@@ -172,20 +172,31 @@ class MiniProgramService extends BaseService
         $access_token_key = redis_key("wechat_access_token", $this->type);
         $access_token = $redis->get($access_token_key);
         if (empty($access_token)) {
-            $url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={$this->app_id}&secret={$this->app_secret}";
-            $service = s('Common');
-            $response = $service->curl($url);
-            $response = json_decode($response, true);
-            if (!empty($response['errcode'])) {
+            $response = $this->getAccessTokenFromApi();
+            if ($this->hasError()) {
                 //出错清空缓存
                 $redis->expire($access_token_key, 0);
-                return $this->setError($response['errcode'], $response['errmsg']);
+                return $this->setError($this->getError());
             }
+
             $redis->set($access_token_key, $response['access_token'], $response['expires_in']);
             $access_token = $response['access_token'];
         }
 
         return $access_token;
+    }
+
+    public function getAccessTokenFromApi()
+    {
+        $url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={$this->app_id}&secret={$this->app_secret}";
+        $service = s('Common');
+        $response = $service->curl($url);
+        $response = json_decode($response, true);
+        if (!empty($response['errcode'])) {
+            return $this->setError($response['errcode'], $response['errmsg']);
+        }
+
+        return $response;
     }
 
     public function collectFormId($open_id, $form_id)

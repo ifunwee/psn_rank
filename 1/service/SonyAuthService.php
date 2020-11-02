@@ -18,6 +18,7 @@ class SonyAuthService extends BaseService
 
         $service = s('Common');
         $data = $service->curl($url, $header, $post_data, 'post');
+
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
@@ -67,7 +68,7 @@ class SonyAuthService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'D5sGS0G1A3i1LYQN8CFnEq4BcnZObob6WXaOhdDM6zyti6eZNColejKdpK8jVrXG';
+        $npsso = 'hYILGH3UguoJu1GF5WC9AHwPn0N5wjGAPwzOwheJoKWsww3Cl7qmuc1UnvTen19W';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';

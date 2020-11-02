@@ -39,6 +39,17 @@ class MiniProgramInterface extends BaseInterface
         $this->respondSuccess($info);
     }
 
+    public function getAccessTokenFromApi()
+    {
+        exit;
+        $appcode = getParam('appcode');
+        $service      = s('MiniProgram', $appcode);
+        $info = $service->getAccessTokenFromApi();
+
+        echo json_encode($info);
+        exit;
+    }
+
     public function collectFormId()
     {
         $open_id = getParam('open_id');

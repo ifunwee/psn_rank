@@ -33,19 +33,17 @@ class CommonService extends BaseService
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 //        curl_setopt($ch, CURLOPT_SSLVERSION, 2);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20);
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_MAXREDIRS, 3);//设置请求最多重定向的次数
 
         if (!empty($this->is_proxy)) {
             $proxy = $this->getProxy();
-//            var_dump("{$proxy['ip']}:{$proxy['port']}");
             if ($this->hasError()) {
                 return $this->setError($this->getError());
             }
             curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, false);
-//            curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC); //代理认证模式
-
             curl_setopt($ch, CURLOPT_PROXY, $proxy['ip']); //代理服务器地址
             curl_setopt($ch, CURLOPT_PROXYPORT, $proxy['port']); //代理服务器端口
             curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP); //使用http代理模式
@@ -247,10 +245,10 @@ class CommonService extends BaseService
 
     public function allowCORS()
     {
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
-        header('Access-Control-Allow-Methods: *');
-        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Origin:*');
+        header('Access-Control-Allow-Headers:Origin, X-Requested-With, Content-Type, Accept');
+        header('Access-Control-Allow-Methods:*');
+        header('Access-Control-Allow-Credentials:true');
         header('Access-Control-Max-Age: 3600');
         if($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
             exit;

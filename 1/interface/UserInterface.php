@@ -4,7 +4,7 @@ class UserInterface extends BaseInterface
     public function buildJWT()
     {
         $service = s('Common');
-        $payload = array('user_id'=>'9ac50f047767e4292d8eeec5ec72292e');
+        $payload = array('user_id'=>'a6f9626281f711947470422b5d0f9133');
 
         $result = $service->buildJWT($payload);
         if ($service->hasError()) {

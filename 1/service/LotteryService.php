@@ -143,7 +143,8 @@ class LotteryService extends BaseService
 
         $now = time();
         if ($now < $lottery_info['start_time']) {
-            return $this->setError('lottery_is_not_start', '抽奖活动未开始');
+            $start_date = date("m-d H:i:s", $lottery_info['start_time']);
+            return $this->setError('lottery_is_not_start', "本抽奖于{$start_date}开始");
         }
 
         if ($now >= $lottery_info['end_time']) {
