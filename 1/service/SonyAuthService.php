@@ -202,12 +202,6 @@ class SonyAuthService extends BaseService
         $header = array("Origin: https://id.sonyentertainmentnetwork.com");
         $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
 
-//        $grant_info = $this->getGrantCode();
-//
-//        if ($this->hasError()) {
-//            return $this->setError($this->getError());
-//        }
-
         $post_data = array(
             'grant_type' => 'refresh_token',
             'scope' => $scope,
