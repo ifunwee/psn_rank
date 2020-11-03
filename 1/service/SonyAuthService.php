@@ -140,7 +140,7 @@ class SonyAuthService extends BaseService
         if (empty($info)) {
             $data = $this->rebuildApiAccessToken();
         } else {
-            if (time() > (int)$info['expire_timestamp'] || 1==1) {
+            if (time() > (int)$info['expire_timestamp']) {
                 $data = $this->refreshApiAccessToken($info['refresh_token']);
             } else {
                 return $info;
