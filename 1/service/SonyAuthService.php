@@ -68,7 +68,7 @@ class SonyAuthService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'hYILGH3UguoJu1GF5WC9AHwPn0N5wjGAPwzOwheJoKWsww3Cl7qmuc1UnvTen19W';
+        $npsso = 'cN1Nf4hwEG6Kx1dCBfKjnPTGkuaYIkmLO5uFMFBZbNBf7S7guSVDkRs1ZSoEtoFy';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
@@ -77,7 +77,7 @@ class SonyAuthService extends BaseService
         $post_data = array(
             'authentication_type' => 'password',
             'username' => 'funwee@qq.com',
-            'password' => 'hw2924920',
+            'password' => '1q2w3e4r',
             'client_id' => '71a7beb8-f21a-47d9-a604-2e71bee24fe0',
         );
 
@@ -90,7 +90,7 @@ class SonyAuthService extends BaseService
         );
 
         $service = s('Common');
-        $data = $service->curl($url, $header, $post_data, 'post');
+        $head = $service->curlHeader($url, $header);
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
@@ -135,11 +135,39 @@ class SonyAuthService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = 'auth_info:api';
+
         $info = $redis->hGetAll($redis_key);
-        if (!empty($info)) {
-            return $info;
+        if (empty($info)) {
+            $data = $this->rebuildApiAccessToken();
+        } else {
+            if (time() > (int)$info['expire_timestamp'] || 1==1) {
+                $data = $this->refreshApiAccessToken($info['refresh_token']);
+            } else {
+                return $info;
+            }
         }
 
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+
+        if (!empty($data)) {
+            $info = json_decode($data, true);
+            if (!empty($info['error'])) {
+                return $this->setError($info['error_code'], $info['error']);
+            }
+            $info['expire_timestamp'] = time() + 3300;
+            $redis->hMset($redis_key, $info);
+        } else {
+            $info = array();
+        }
+
+        return $info;
+    }
+
+    //重新生成token
+    public function rebuildApiAccessToken()
+    {
         $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
         $header = array("Origin: https://id.sonyentertainmentnetwork.com");
         $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
@@ -163,16 +191,38 @@ class SonyAuthService extends BaseService
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
-        if (!empty($data)) {
-            $info = json_decode($data, true);
-            if (!empty($info['error'])) {
-                return $this->setError($info['error_code'], $info['error']);
-            }
-            $redis->hMset($redis_key, $info);
-            $redis->expire($redis_key, 3600);
-        } else {
-            $info = array();
+
+        return $data;
+    }
+
+    //刷新token
+    public function refreshApiAccessToken($refresh_token)
+    {
+        $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
+        $header = array("Origin: https://id.sonyentertainmentnetwork.com");
+        $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
+
+//        $grant_info = $this->getGrantCode();
+//
+//        if ($this->hasError()) {
+//            return $this->setError($this->getError());
+//        }
+
+        $post_data = array(
+            'grant_type' => 'refresh_token',
+            'scope' => $scope,
+            'refresh_token' => $refresh_token,
+            'client_id' => 'ebee17ac-99fd-487c-9b1e-18ef50c39ab5',
+            'client_secret' => 'e4Ru_s*LrL4_B2BD',
+        );
+
+        $post_data = http_build_query($post_data);
+        $service = s('Common');
+        $data = $service->curl($url, $header, $post_data, 'post');
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
         }
-        return $info;
+
+        return $data;
     }
 }
