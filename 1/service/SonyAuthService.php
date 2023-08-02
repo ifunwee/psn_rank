@@ -68,7 +68,7 @@ class SonyAuthService extends BaseService
 
     public function getNpsso()
     {
-        $npsso = 'hYILGH3UguoJu1GF5WC9AHwPn0N5wjGAPwzOwheJoKWsww3Cl7qmuc1UnvTen19W';
+        $npsso = '6InM0uscdvDGNxtOZ5DWuTH6iRl2oEOVY0evQlZo1kxnLceesn6CmSYM7Q7YX7qY';
         return $npsso;
         $redis = r('psn_redis');
         $redis_key = 'auth_info:login';
@@ -77,7 +77,7 @@ class SonyAuthService extends BaseService
         $post_data = array(
             'authentication_type' => 'password',
             'username' => 'funwee@qq.com',
-            'password' => 'hw2924920',
+            'password' => 'sony@857',
             'client_id' => '71a7beb8-f21a-47d9-a604-2e71bee24fe0',
         );
 
@@ -90,7 +90,7 @@ class SonyAuthService extends BaseService
         );
 
         $service = s('Common');
-        $data = $service->curl($url, $header, $post_data, 'post');
+        $head = $service->curlHeader($url, $header);
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
@@ -106,7 +106,7 @@ class SonyAuthService extends BaseService
 
     public function getGrantCode()
     {
-        $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?client_id=ebee17ac-99fd-487c-9b1e-18ef50c39ab5&redirect_uri=com.playstation.PlayStationApp%3A%2F%2Fredirect&response_type=code&scope=kamaji%3Aget_account_hash%20kamaji%3Aactivity_feed_submit_feed_story%20kamaji%3Aactivity_feed_internal_feed_submit_story%20kamaji%3Aactivity_feed_get_news_feed%20kamaji%3Acommunities%20kamaji%3Agame_list%20kamaji%3Augc%3Adistributor%20oauth%3Amanage_device_usercodes%20psn%3Asceapp%20user%3Aaccount.profile.get%20user%3Aaccount.attributes.validate%20user%3Aaccount.settings.privacy.get%20kamaji%3Aactivity_feed_set_feed_privacy";
+        $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?client_id=8c52bc6a-4ad1-43fb-bd63-4465cf818937&redirect_uri=com.playstation.PlayStationApp%3A%2F%2Fredirect&response_type=code&scope=kamaji%3Aget_account_hash%20kamaji%3Aactivity_feed_submit_feed_story%20kamaji%3Aactivity_feed_internal_feed_submit_story%20kamaji%3Aactivity_feed_get_news_feed%20kamaji%3Acommunities%20kamaji%3Agame_list%20kamaji%3Augc%3Adistributor%20oauth%3Amanage_device_usercodes%20psn%3Asceapp%20user%3Aaccount.profile.get%20user%3Aaccount.attributes.validate%20user%3Aaccount.settings.privacy.get%20kamaji%3Aactivity_feed_set_feed_privacy";
         $header = array(
             "Origin: https://id.sonyentertainmentnetwork.com",
         );
@@ -135,11 +135,41 @@ class SonyAuthService extends BaseService
     {
         $redis = r('psn_redis');
         $redis_key = 'auth_info:api';
-        $info = $redis->hGetAll($redis_key);
-        if (!empty($info)) {
-            return $info;
-        }
 
+        $info = $redis->hGetAll($redis_key);
+//        if (empty($info)) {
+//            //过期失效 则新生成
+//            $data = $this->rebuildApiAccessToken();
+//        } else {
+//            if (time() > (int)$info['expire_timestamp']) {
+//                //未过期则刷新
+//                $data = $this->refreshApiAccessToken($info['refresh_token']);
+//            } else {
+//                return $info;
+//            }
+//        }
+
+//        if (!empty($data)) {
+//            $info = json_decode($data, true);
+//            if (!empty($info['error'])) {
+//                return $this->setError($info['error_code'], $info['error']);
+//            }
+//            $info['expire_timestamp'] = time() + 3300;
+//            $redis->hMset($redis_key, $info);
+//        } else {
+//            $info = array();
+//        }
+
+        $info = $this->getApiAccessTokenFromVgn();
+        if ($this->hasError()) {
+            return $this->setError($this->getError());
+        }
+        return $info;
+    }
+
+    //重新生成token
+    public function rebuildApiAccessToken()
+    {
         $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
         $header = array("Origin: https://id.sonyentertainmentnetwork.com");
         $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
@@ -153,8 +183,8 @@ class SonyAuthService extends BaseService
             'scope' => $scope,
             'redirect_uri' => 'com.playstation.PlayStationApp://redirect',
             'code' => $grant_info['grant_code'],
-            'client_id' => 'ebee17ac-99fd-487c-9b1e-18ef50c39ab5',
-            'client_secret' => 'e4Ru_s*LrL4_B2BD',
+            'client_id' => '8c52bc6a-4ad1-43fb-bd63-4465cf818937',
+            'client_secret' => 'bKC6jEYJ6CCXdxzr',
         );
 
         $post_data = http_build_query($post_data);
@@ -163,16 +193,48 @@ class SonyAuthService extends BaseService
         if ($service->hasError()) {
             return $this->setError($service->getError());
         }
-        if (!empty($data)) {
-            $info = json_decode($data, true);
-            if (!empty($info['error'])) {
-                return $this->setError($info['error_code'], $info['error']);
-            }
-            $redis->hMset($redis_key, $info);
-            $redis->expire($redis_key, 3600);
-        } else {
-            $info = array();
+
+
+        return $data;
+    }
+
+    //刷新token
+    public function refreshApiAccessToken($refresh_token)
+    {
+        $url = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
+        $header = array("Origin: https://id.sonyentertainmentnetwork.com");
+        $scope = "kamaji:get_account_hash kamaji:activity_feed_submit_feed_story kamaji:activity_feed_internal_feed_submit_story kamaji:activity_feed_get_news_feed kamaji:communities kamaji:game_list kamaji:ugc:distributor oauth:manage_device_usercodes psn:sceapp user:account.profile.get user:account.attributes.validate user:account.settings.privacy.get kamaji:activity_feed_set_feed_privacy";
+
+        $post_data = array(
+            'grant_type' => 'refresh_token',
+            'scope' => $scope,
+            'refresh_token' => $refresh_token,
+            'client_id' => '8c52bc6a-4ad1-43fb-bd63-4465cf818937',
+            'client_secret' => 'bKC6jEYJ6CCXdxzr',
+        );
+
+        $post_data = http_build_query($post_data);
+        $service = s('Common');
+        $data = $service->curl($url, $header, $post_data, 'post');
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
         }
-        return $info;
+
+        return $data;
+    }
+
+    //获取access_token
+    public function getApiAccessTokenFromVgn()
+    {
+        $url = "https://api.vgn.cn/apiv2/access-token?from=xiaobei";
+        $service = s('Common');
+        $result = $service->curl($url);
+        if ($service->hasError()) {
+            return $this->setError($service->getError());
+        }
+        $info = json_decode($result, true);
+        $data['token_type'] = 'bearer';
+        $data['access_token'] = $info['data'];
+        return $data;
     }
 }
