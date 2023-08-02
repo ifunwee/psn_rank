@@ -255,7 +255,7 @@ class HandlePsPrice
         /**
          * @see JonnyW\PhantomJs\Http\Request
          **/
-        $request = $client->getMessageFactory()->createRequest('https://market-h5.taqu.cn/html/live/ranking/PK/season7/index.html?season=10', 'GET');
+        $request = $client->getMessageFactory()->createRequest('https://', 'GET');
         $request->setTimeout(50000);
         /**
          * @see JonnyW\PhantomJs\Http\Response
